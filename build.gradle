@@ -87,7 +87,8 @@ dependencies {
     implementation "com.bmuschko:gradle-nexus-plugin:2.3.1"
     implementation("org.grails:grails-bootstrap:$grailsVersion")
     implementation "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
-    implementation "io.spring.gradle:dependency-management-plugin:1.1.4"
+    implementation "org.springframework.boot:spring-boot-loader-tools:$springBootVersion"
+    implementation "io.spring.gradle:dependency-management-plugin:1.1.5"
 }
 
 gradlePlugin {
