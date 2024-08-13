@@ -18,7 +18,6 @@ package org.grails.gradle.plugin.profiles
 import grails.io.IOUtils
 import grails.util.BuildSettings
 import groovy.transform.CompileStatic
-import org.apache.tools.ant.DirectoryScanner
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -96,15 +95,6 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
         def processResources = project.tasks.create("processResources", Copy, (Action){ Copy c ->
             c.with(spec1, spec2, spec3, spec4)
             c.into(new File(resourcesDir, "/META-INF/grails-profile"))
-
-            c.doFirst {
-                for(String file in DirectoryScanner.defaultExcludes) {
-                    DirectoryScanner.removeDefaultExclude(file)
-                }
-            }
-            c.doLast {
-                DirectoryScanner.resetDefaultExcludes()
-            }
         })
 
         def classsesDir = new File(project.buildDir, "classes/profile")
@@ -128,15 +118,6 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
 
             ArchivePublishArtifact jarArtifact = new ArchivePublishArtifact(jar)
             project.artifacts.add(CONFIGURATION_NAME, jarArtifact)
-
-            jar.doFirst {
-                for(String file in DirectoryScanner.defaultExcludes) {
-                    DirectoryScanner.removeDefaultExclude(file)
-                }
-            }
-            jar.doLast {
-                DirectoryScanner.resetDefaultExcludes()
-            }
         })
 
         project.tasks.create("sourcesJar", Jar, (Action) { Jar jar ->
@@ -155,14 +136,6 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
             jar.setDescription("Assembles a jar archive containing the profile sources.")
             jar.setGroup(BUILD_GROUP)
 
-            jar.doFirst {
-                for(String file in DirectoryScanner.defaultExcludes) {
-                    DirectoryScanner.removeDefaultExclude(file)
-                }
-            }
-            jar.doLast {
-                DirectoryScanner.resetDefaultExcludes()
-            }
         })
         project.tasks.findByName("assemble").dependsOn jarTask
 
