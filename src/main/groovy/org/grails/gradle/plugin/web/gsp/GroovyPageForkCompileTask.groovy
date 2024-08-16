@@ -4,11 +4,13 @@ import groovy.transform.CompileDynamic
 import groovy.transform.CompileStatic
 import org.gradle.api.Action
 import org.gradle.api.file.FileTree
+import org.gradle.api.model.ObjectFactory
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.compile.AbstractCompile
 import org.gradle.process.ExecResult
 import org.gradle.process.JavaExecSpec
 
+import javax.inject.Inject
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -22,7 +24,7 @@ import java.nio.file.Paths
  * @since 4.0
  */
 @CompileStatic
-class GroovyPageForkCompileTask extends AbstractCompile {
+abstract class GroovyPageForkCompileTask extends AbstractCompile {
 
     @Input
     @Optional
@@ -46,8 +48,13 @@ class GroovyPageForkCompileTask extends AbstractCompile {
     @Optional
     String serverpath
 
+    @Inject
+    protected ObjectFactory getObjectFactory() {
+        throw new UnsupportedOperationException();
+    }
+
     @Nested
-    GspCompileOptions compileOptions = new GspCompileOptions()
+    GspCompileOptions compileOptions = getObjectFactory().newInstance(GspCompileOptions.class)
 
     @Override
     @PathSensitive(PathSensitivity.RELATIVE)
