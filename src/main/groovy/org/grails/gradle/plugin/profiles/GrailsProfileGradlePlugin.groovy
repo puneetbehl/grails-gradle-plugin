@@ -18,20 +18,17 @@ package org.grails.gradle.plugin.profiles
 import grails.io.IOUtils
 import grails.util.BuildSettings
 import groovy.transform.CompileStatic
-import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.DependencyResolveDetails
 import org.gradle.api.file.CopySpec
-import org.gradle.api.internal.artifacts.publish.ArchivePublishArtifact
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.bundling.Jar
 import org.grails.cli.profile.commands.script.GroovyScriptCommand
 import org.grails.gradle.plugin.profiles.tasks.ProfileCompilerTask
 
-
-import static org.gradle.api.plugins.BasePlugin.*
+import static org.gradle.api.plugins.BasePlugin.BUILD_GROUP
 
 /**
  * A plugin that is capable of compiling a Grails profile into a JAR file for distribution
@@ -69,7 +66,7 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
         def profileYml = project.file("profile.yml")
 
         def commandsDir = project.file("commands")
-        def resourcesDir = new File(project.buildDir, "resources/profile")
+        def resourcesDir = new File(project.layout.buildDirectory.getAsFile().get(), "resources/profile")
         def templatesDir = project.file("templates")
         def skeletonsDir = project.file("skeleton")
         def featuresDir = project.file("features")
@@ -92,13 +89,13 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
             spec.into("skeleton")
         }
 
-        def processResources = project.tasks.create("processResources", Copy, (Action){ Copy c ->
+        def processResources = project.tasks.create("processResources", Copy, { Copy c ->
             c.with(spec1, spec2, spec3, spec4)
             c.into(new File(resourcesDir, "/META-INF/grails-profile"))
         })
 
-        def classsesDir = new File(project.buildDir, "classes/profile")
-        def compileTask = project.tasks.create("compileProfile", ProfileCompilerTask, (Action) { ProfileCompilerTask task ->
+        def classsesDir = new File(project.layout.buildDirectory.getAsFile().get(), "classes/profile")
+        def compileTask = project.tasks.create("compileProfile", ProfileCompilerTask, { ProfileCompilerTask task ->
             task.destinationDir = classsesDir
             task.source = commandsDir
             task.config = profileYml
@@ -108,19 +105,19 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
             task.classpath = project.configurations.getByName(RUNTIME_CONFIGURATION) + project.files(IOUtils.findJarFile(GroovyScriptCommand))
         })
 
-        def jarTask = project.tasks.create("jar", Jar, (Action) { Jar jar ->
+        def jarTask = project.tasks.create("jar", Jar, { Jar jar ->
             jar.dependsOn(processResources, compileTask)
             jar.from(resourcesDir)
             jar.from(classsesDir)
-            jar.destinationDir = new File(project.buildDir, "libs")
+            jar.destinationDirectory.set(new File(project.layout.buildDirectory.getAsFile().get(), "libs"))
             jar.setDescription("Assembles a jar archive containing the profile classes.")
             jar.setGroup(BUILD_GROUP)
 
-            ArchivePublishArtifact jarArtifact = new ArchivePublishArtifact(jar)
-            project.artifacts.add(CONFIGURATION_NAME, jarArtifact)
+//            ArchivePublishArtifact jarArtifact = new ArchivePublishArtifact(jar)
+//            project.artifacts.add(CONFIGURATION_NAME, jarArtifact)
         })
 
-        project.tasks.create("sourcesJar", Jar, (Action) { Jar jar ->
+        project.tasks.create("sourcesJar", Jar, { Jar jar ->
             jar.from(commandsDir)
             if(profileYml.exists()) {
                 jar.from(profileYml)
@@ -132,7 +129,7 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
                 spec.into("skeleton")
             }
             jar.archiveClassifier.set("sources")
-            jar.destinationDirectory.set(new File(project.buildDir, "libs"))
+            jar.destinationDirectory.set(new File(project.layout.buildDirectory.getAsFile().get(), "libs"))
             jar.setDescription("Assembles a jar archive containing the profile sources.")
             jar.setGroup(BUILD_GROUP)
 
