@@ -11,6 +11,7 @@ group "org.grails"
 version project.projectVersion
 
 repositories {
+    mavenLocal()
     mavenCentral()
     maven { url "https://repo.grails.org/grails/core" }
 }
@@ -64,11 +65,11 @@ if (isReleaseVersion) {
     apply plugin: 'signing'
 }
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
-
-
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+
     withJavadocJar()
     withSourcesJar()
 }
@@ -86,7 +87,7 @@ dependencies {
     implementation "com.bmuschko:gradle-nexus-plugin:2.3.1"
     implementation "org.grails:grails-bootstrap:$grailsVersion"
     implementation "org.grails:grails-gradle-model:$grailsVersion"
-    implementation "org.grails:grails-shell:$grailsVersion"
+    implementation "org.grails:grails-shell:$grailsShellVersion"
     implementation "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
     implementation "org.springframework.boot:spring-boot-loader-tools:$springBootVersion"
     implementation "io.spring.gradle:dependency-management-plugin:1.1.5"

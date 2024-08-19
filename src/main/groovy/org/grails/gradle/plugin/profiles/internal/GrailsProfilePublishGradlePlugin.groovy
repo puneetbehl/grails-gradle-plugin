@@ -46,10 +46,10 @@ class GrailsProfilePublishGradlePlugin extends GrailsCentralPublishGradlePlugin 
         super.apply(project)
         final File tempReadmeForJavadoc = Files.createTempFile("README", "txt").toFile()
         tempReadmeForJavadoc << "https://central.sonatype.org/publish/requirements/#supply-javadoc-and-sources"
-        project.tasks.create("javadocJar", Jar, (Action) { Jar jar ->
+        project.tasks.create("javadocJar", Jar, { Jar jar ->
             jar.from(tempReadmeForJavadoc)
             jar.archiveClassifier.set("javadoc")
-            jar.destinationDirectory.set(new File(project.buildDir, "libs"))
+            jar.destinationDirectory.set(new File(project.layout.buildDirectory.getAsFile().get(), "libs"))
             jar.setDescription("Assembles a jar archive containing the profile javadoc.")
             jar.setGroup(BUILD_GROUP)
         })
