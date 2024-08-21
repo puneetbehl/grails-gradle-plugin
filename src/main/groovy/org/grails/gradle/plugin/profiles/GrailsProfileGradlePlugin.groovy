@@ -96,7 +96,7 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
 
         def classsesDir = new File(project.layout.buildDirectory.getAsFile().get(), "classes/profile")
         def compileTask = project.tasks.create("compileProfile", ProfileCompilerTask, { ProfileCompilerTask task ->
-            task.destinationDir = classsesDir
+            task.profileDestinationDir = classsesDir
             task.source = commandsDir
             task.config = profileYml
             if(templatesDir.exists()) {
