@@ -65,11 +65,11 @@ if (isReleaseVersion) {
     apply plugin: 'signing'
 }
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
-
-
 java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+
     withJavadocJar()
     withSourcesJar()
 }
@@ -85,8 +85,9 @@ dependencies {
     implementation ( "org.codehaus.groovy:groovy-templates:$groovyVersion" )
     implementation "io.github.gradle-nexus:publish-plugin:2.0.0"
     implementation "com.bmuschko:gradle-nexus-plugin:2.3.1"
-    implementation("org.grails:grails-bootstrap:$grailsVersion")
-    implementation("org.grails:grails-gradle-model:$grailsVersion")
+    implementation "org.grails:grails-bootstrap:$grailsVersion"
+    implementation "org.grails:grails-gradle-model:$grailsVersion"
+    implementation "org.grails:grails-shell:$grailsShellVersion"
     implementation "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
     implementation "org.springframework.boot:spring-boot-loader-tools:$springBootVersion"
     implementation "io.spring.gradle:dependency-management-plugin:1.1.5"
@@ -118,6 +119,12 @@ gradlePlugin {
             id = 'org.grails.grails-plugin'
             implementationClass = 'org.grails.gradle.plugin.core.GrailsPluginGradlePlugin'
         }
+        grailsProfile {
+            displayName = "Grails Profile Gradle Plugin"
+            description = 'A plugin that is capable of compiling a Grails profile into a JAR file for distribution'
+            id = 'org.grails.grails-profile'
+            implementationClass = 'org.grails.gradle.plugin.profiles.GrailsProfileGradlePlugin'
+        }
         grailsWeb {
             displayName = "Grails Web Gradle Plugin"
             description = 'Adds web specific extensions'
@@ -129,6 +136,12 @@ gradlePlugin {
             description = 'A plugin to setup publishing to Grails central repo'
             id = 'org.grails.internal.grails-plugin-publish'
             implementationClass = 'org.grails.gradle.plugin.publishing.internal.GrailsCentralPublishGradlePlugin'
+        }
+        grailsProfilePublish {
+            displayName = "Grails Profile Publish Plugin"
+            description = 'A plugin for publishing profiles'
+            id = 'org.grails.internal.grails-profile-publish'
+            implementationClass = 'org.grails.gradle.plugin.profiles.internal.GrailsProfilePublishGradlePlugin'
         }
     }
 }
