@@ -336,14 +336,7 @@ BINTRAY_KEY=key
     }
 
     protected Map<String, String> getDefaultExtraArtifact(Project project) {
-        def directory
-        try {
-            directory = project.sourceSets.main.groovy.outputDir
-
-        } catch (Exception e) {
-            directory = project.sourceSets.main.output.classesDirs
-        }
-        [source    : "${directory}/META-INF/grails-plugin.xml".toString(),
+        [source    : "${project.sourceSets.main.groovy.getClassesDirectory().get().getAsFile()}/META-INF/grails-plugin.xml",
          classifier: getDefaultClassifier(),
          extension : 'xml']
     }
