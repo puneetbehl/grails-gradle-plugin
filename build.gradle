@@ -74,7 +74,8 @@ java {
     withSourcesJar()
 }
 
-configurations.all*.exclude group: 'org.apache.groovy', module: 'groovy-xml'
+// resolve conflict from Gradle's version of Groovy. Not needed if Gradle switches to 4.0
+configurations.configureEach { exclude group: 'org.apache.groovy', module: 'groovy-xml' }
 
 dependencies {
     implementation "org.apache.groovy:groovy-xml:$groovyVersion"
