@@ -78,8 +78,6 @@ java {
 configurations.configureEach { exclude group: 'org.apache.groovy', module: 'groovy-xml' }
 
 dependencies {
-    implementation "org.apache.groovy:groovy-xml:$groovyVersion"
-    implementation "org.apache.groovy:groovy-templates:$groovyVersion"
     implementation "io.github.gradle-nexus:publish-plugin:2.0.0"
     implementation "com.bmuschko:gradle-nexus-plugin:2.3.1"
     implementation "org.grails:grails-bootstrap:$grailsVersion"
