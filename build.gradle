@@ -74,25 +74,10 @@ java {
     withSourcesJar()
 }
 
-configurations.configureEach {
-    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
-        // This is a workaround for grails-shell exposing a different version of Groovy
-        // than the one used by Gradle. This causes issues with the Groovy compiler.
-        if (details.requested.group == 'org.apache.groovy') {
-            details.useTarget(group: "org.codehaus.groovy", name: details.requested.name, version: GroovySystem.version)
-            details.because "Use Groovy 3.0.x library shipped with Gradle"
-        }
-
-        if (details.requested.group == 'org.codehaus.groovy') {
-            details.useTarget(group: "org.codehaus.groovy", name: details.requested.name, version: GroovySystem.version)
-            details.because "Use Groovy 3.0.x library shipped with Gradle"
-        }
-    }
-}
+// resolve conflict from Gradle's version of Groovy. Not needed if Gradle switches to 4.0
+configurations.configureEach { exclude group: 'org.apache.groovy', module: 'groovy-xml' }
 
 dependencies {
-    implementation ( "org.codehaus.groovy:groovy-xml:$groovyVersion" )
-    implementation ( "org.codehaus.groovy:groovy-templates:$groovyVersion" )
     implementation "io.github.gradle-nexus:publish-plugin:2.0.0"
     implementation "com.bmuschko:gradle-nexus-plugin:2.3.1"
     implementation "org.grails:grails-bootstrap:$grailsVersion"
