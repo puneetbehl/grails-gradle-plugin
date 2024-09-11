@@ -85,7 +85,7 @@ dependencies {
     implementation "org.grails:grails-shell:$grailsShellVersion"
     implementation "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
     implementation "org.springframework.boot:spring-boot-loader-tools:$springBootVersion"
-    implementation "io.spring.gradle:dependency-management-plugin:1.1.5"
+    implementation "io.spring.gradle:dependency-management-plugin:1.1.6"
 }
 
 gradlePlugin {
