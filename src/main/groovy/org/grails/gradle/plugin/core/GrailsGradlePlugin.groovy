@@ -265,9 +265,15 @@ class GrailsGradlePlugin extends GroovyPlugin {
                 configuration.resolutionStrategy.eachDependency({ DependencyResolveDetails details ->
                     String dependencyName = details.requested.name
                     String group = details.requested.group
-                    if (group == 'org.codehaus.groovy' && dependencyName.startsWith('groovy')) {
+                    if (group == 'org.codehaus.groovy') {
+                        if (dependencyName == 'groovy-all') {
+                            details.useTarget "org.apache.groovy:groovy:$groovyVersion"
+                        } else {
+                            details.useTarget "org.apache.groovy:$dependencyName:$groovyVersion"
+                        }
+                        details.because('groovy version substituted for groovy 4')
+                    } else if (group == 'org.apache.groovy' && dependencyName.startsWith('groovy')) {
                         details.useVersion(groovyVersion)
-                        return
                     }
                 } as Action<DependencyResolveDetails>)
             } as Action<Configuration>)

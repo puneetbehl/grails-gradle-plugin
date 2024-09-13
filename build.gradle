@@ -75,7 +75,7 @@ java {
 }
 
 // resolve conflict from Gradle's version of Groovy. Not needed if Gradle switches to 4.0
-configurations.configureEach { exclude group: 'org.apache.groovy', module: 'groovy-xml' }
+configurations.configureEach { exclude group: 'org.apache.groovy' }
 
 dependencies {
     implementation "io.github.gradle-nexus:publish-plugin:2.0.0"
