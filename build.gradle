@@ -78,6 +78,11 @@ java {
 configurations.configureEach { exclude group: 'org.apache.groovy' }
 
 dependencies {
+    // compile grails-gradle-plugin with the Groovy version provided by Gradle
+    // to ensure build compatibility with Gradle, currently Groovy 3.0.x
+    // see: https://docs.gradle.org/current/userguide/compatibility.html#groovy
+    compileOnly    "org.codehaus.groovy:groovy:$GroovySystem.version"
+
     implementation "io.github.gradle-nexus:publish-plugin:2.0.0"
     implementation "com.bmuschko:gradle-nexus-plugin:2.3.1"
     implementation "org.grails:grails-bootstrap:$grailsVersion"
