@@ -67,7 +67,7 @@ class GroovyPagePlugin implements Plugin<Project> {
         }
 
         compileWebappGroovyPages.setClasspath( allClasspath )
-
+        compileWebappGroovyPages.dependsOn(allTasks.findByName("copyAstClasses"))
 
         project.afterEvaluate {
             GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
