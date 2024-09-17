@@ -159,6 +159,12 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
         def taskContainer = project.tasks
         taskContainer.getByName('classes').dependsOn(copyAstClasses)
 
+        try{
+            taskContainer.getByName('compileWebappGroovyPages').dependsOn(copyAstClasses)
+        }
+        catch (ignored) {
+        }
+
         taskContainer.withType(JavaExec) {
             classpath += sourceSets.ast.output
         }
