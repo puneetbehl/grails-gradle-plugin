@@ -44,6 +44,7 @@ import org.gradle.api.tasks.JavaExec
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetOutput
 import org.gradle.api.tasks.TaskContainer
+import org.gradle.api.tasks.bundling.AbstractArchiveTask
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.compile.GroovyCompile
 import org.gradle.api.tasks.testing.Test
@@ -143,6 +144,8 @@ class GrailsGradlePlugin extends GroovyPlugin {
         configureRunCommand(project)
 
         configurePathingJar(project)
+
+        configureArchiveCommands(project)
     }
 
     protected void excludeDependencies(Project project) {
@@ -701,5 +704,12 @@ class GrailsGradlePlugin extends GroovyPlugin {
             fileCollection = fileCollection + it.filter({ File file-> !file.name.startsWith("spring-boot-devtools")})
         }
         fileCollection
+    }
+
+    protected void configureArchiveCommands(Project project) {
+        project.tasks.withType(AbstractArchiveTask).configureEach {
+            // the zip format supports duplicates and gradle implements this feature, so exclude them
+            it.duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+        }
     }
 }
