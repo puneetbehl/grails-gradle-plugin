@@ -3,7 +3,7 @@ buildscript {
         gradlePluginPortal()
     }
     dependencies {
-        classpath "io.github.gradle-nexus:publish-plugin:2.0.0"
+        classpath "io.github.gradle-nexus:publish-plugin:$gradleNexusPublishPluginVersion"
     }
 }
 
@@ -18,9 +18,9 @@ repositories {
 
 ext.isSnapshot = version.endsWith("-SNAPSHOT")
 ext.isReleaseVersion = !ext.isSnapshot
-ext."signing.keyId" = System.getenv("SIGNING_KEY") ?: project.hasProperty("signing.keyId") ? project.getProperty('signing.keyId') : null
-ext."signing.password" = System.getenv("SIGNING_PASSPHRASE") ?: project.hasProperty("signing.password") ? project.getProperty('signing.password') : null
-ext."signing.secretKeyRingFile" = project.hasProperty("signing.secretKeyRingFile") ? project.getProperty('signing.secretKeyRingFile') : null
+ext."signing.keyId" = project.findProperty("signing.keyId") ?: System.getenv('SIGNING_KEY')
+ext."signing.password" = project.findProperty("signing.password") ?: System.getenv('SIGNING_PASSPHRASE')
+ext."signing.secretKeyRingFile" = project.findProperty("signing.secretKeyRingFile") ?: "${System.properties['user.home']}${File.separator}.gnupg${File.separator}secring.gpg"
 
 ext.pomInfo = {
     delegate.url 'https://github.com/grails/grails-gradle-plugin'
@@ -74,18 +74,28 @@ java {
     withSourcesJar()
 }
 
-// resolve conflict from Gradle's version of Groovy. Not needed if Gradle switches to 4.0
-configurations.configureEach { exclude group: 'org.apache.groovy', module: 'groovy-xml' }
-
 dependencies {
-    implementation "io.github.gradle-nexus:publish-plugin:2.0.0"
-    implementation "com.bmuschko:gradle-nexus-plugin:2.3.1"
-    implementation "org.grails:grails-bootstrap:$grailsVersion"
+    // compile grails-gradle-plugin with the Groovy version provided by Gradle
+    // to ensure build compatibility with Gradle, currently Groovy 3.0.x
+    // see: https://docs.gradle.org/current/userguide/compatibility.html#groovy
+    compileOnly    "org.codehaus.groovy:groovy:$GroovySystem.version"
+    compileOnly "org.grails:grails-bootstrap:$grailsVersion", {
+        exclude group: 'org.apache.groovy'
+    }
+    compileOnly "org.grails:grails-shell:$grailsShellVersion", {
+        exclude group: 'org.apache.groovy'
+    }
+
+    runtimeOnly "org.grails:grails-bootstrap:$grailsVersion"
+    runtimeOnly "org.grails:grails-shell:$grailsShellVersion"
+
     implementation "org.grails:grails-gradle-model:$grailsVersion"
-    implementation "org.grails:grails-shell:$grailsShellVersion"
+    
+    implementation "io.github.gradle-nexus:publish-plugin:$gradleNexusPublishPluginVersion"
+    implementation "com.bmuschko:gradle-nexus-plugin:$gradleNexusPluginVersion"
     implementation "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
     implementation "org.springframework.boot:spring-boot-loader-tools:$springBootVersion"
-    implementation "io.spring.gradle:dependency-management-plugin:1.1.6"
+    implementation "io.spring.gradle:dependency-management-plugin:$springGradleDependencyManagementVersion"
 }
 
 gradlePlugin {
