@@ -261,22 +261,33 @@ class GrailsGradlePlugin extends GroovyPlugin {
     protected void configureGroovy(Project project) {
         final String groovyVersion = project.properties['groovyVersion']
         if (groovyVersion) {
-            project.configurations.all({ Configuration configuration ->
-                configuration.resolutionStrategy.eachDependency({ DependencyResolveDetails details ->
-                    String dependencyName = details.requested.name
-                    String group = details.requested.group
-                    if (group == 'org.codehaus.groovy') {
-                        if (dependencyName == 'groovy-all') {
-                            details.useTarget "org.apache.groovy:groovy:$groovyVersion"
-                        } else {
-                            details.useTarget "org.apache.groovy:$dependencyName:$groovyVersion"
+            if (groovyVersion.startsWith("4.")) {
+                project.configurations.configureEach { Configuration configuration ->
+                    configuration.resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                        String dependencyName = details.requested.name
+                        String group = details.requested.group
+                        if (group == 'org.codehaus.groovy') {
+                            if (dependencyName == 'groovy-all') {
+                                details.useTarget "org.apache.groovy:groovy:$groovyVersion"
+                            } else {
+                                details.useTarget "org.apache.groovy:$dependencyName:$groovyVersion"
+                            }
+                            details.because("Groovy version substituted for Groovy $groovyVersion")
+                        } else if (group == 'org.apache.groovy' && dependencyName.startsWith('groovy')) {
+                            details.useVersion(groovyVersion)
                         }
-                        details.because('groovy version substituted for groovy 4')
-                    } else if (group == 'org.apache.groovy' && dependencyName.startsWith('groovy')) {
-                        details.useVersion(groovyVersion)
                     }
-                } as Action<DependencyResolveDetails>)
-            } as Action<Configuration>)
+                }
+            } else if (groovyVersion.startsWith("3.")) {
+                project.configurations.configureEach { Configuration configuration ->
+                    configuration.resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                        if ((details.requested.group == 'org.codehaus.groovy' || details.requested.group == 'org.apache.groovy') && details.requested.name != 'groovy-bom') {
+                            details.useTarget(group: 'org.codehaus.groovy', name: details.requested.name, version: "$GroovySystem.version")
+                            details.because "Use Groovy version $GroovySystem.version provided by Gradle"
+                        }
+                    }
+                }
+            }
         }
     }
 
