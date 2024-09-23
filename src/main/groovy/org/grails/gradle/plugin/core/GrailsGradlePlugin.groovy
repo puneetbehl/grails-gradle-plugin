@@ -511,10 +511,6 @@ class GrailsGradlePlugin extends GroovyPlugin {
             project.configurations {
                 agent
             }
-            final String micronautVersion = project.properties['micronautVersion']
-            if (project.configurations.findByName("developmentOnly")) {
-                project.dependencies.add("developmentOnly", "io.micronaut:micronaut-inject-groovy:${micronautVersion?:defaultMicronautVersion}")
-            }
             project.afterEvaluate(new AgentTasksEnhancer())
         }
     }
