@@ -44,6 +44,11 @@ class GrailsExtension {
     boolean pathingJar = false
 
     /**
+     * Whether java.time.* package should be a default import package
+     */
+    boolean javaTime = true
+
+    /**
      * Configure the reloading agent
      */
     Agent agent = new Agent()

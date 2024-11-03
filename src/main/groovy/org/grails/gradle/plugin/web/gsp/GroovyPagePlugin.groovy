@@ -12,6 +12,7 @@ import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetOutput
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.bundling.War
+import org.gradle.api.tasks.compile.GroovyCompile
 import org.grails.gradle.plugin.core.GrailsExtension
 import org.grails.gradle.plugin.util.SourceSets
 
@@ -68,8 +69,30 @@ class GroovyPagePlugin implements Plugin<Project> {
 
         compileWebappGroovyPages.setClasspath( allClasspath )
 
+        GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
+
+        project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
+            if (grailsExt.javaTime) {
+                groovyCompileTask.doFirst {
+                    def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
+                    if (configScriptStream != null) {
+                        def tempConfigScriptFile = File.createTempFile("build/GrailsCompilerConfig", ".groovy")
+                        tempConfigScriptFile.mkdirs()
+                        tempConfigScriptFile.deleteOnExit()
+
+                        def existingScript = groovyCompileTask.groovyOptions.configurationScript
+                        if (existingScript) {
+                            tempConfigScriptFile << existingScript.text
+                        }
+
+                        tempConfigScriptFile.text = configScriptStream.text
+                        groovyCompileTask.groovyOptions.configurationScript = tempConfigScriptFile
+                    }
+                }
+            }
+        }
+
         project.afterEvaluate {
-            GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
             if (grailsExt.pathingJar && Os.isFamily(Os.FAMILY_WINDOWS)) {
                 Jar pathingJar = (Jar) allTasks.findByName('pathingJar')
                 allClasspath = project.files("${project.buildDir}/classes/groovy/main", "${project.buildDir}/resources/main", pathingJar.archiveFile)
@@ -79,7 +102,6 @@ class GroovyPagePlugin implements Plugin<Project> {
                 compileWebappGroovyPages.setClasspath(allClasspath)
             }
         }
-
 
         compileGroovyPages.dependsOn( allTasks.findByName("classes") )
         compileGroovyPages.dependsOn( compileWebappGroovyPages )
