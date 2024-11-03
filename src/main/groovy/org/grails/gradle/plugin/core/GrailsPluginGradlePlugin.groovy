@@ -36,6 +36,7 @@ import org.gradle.api.tasks.compile.GroovyCompile
 import org.gradle.language.jvm.tasks.ProcessResources
 import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
 import org.grails.gradle.plugin.util.SourceSets
+import org.springframework.boot.gradle.plugin.SpringBootPlugin
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 import javax.inject.Inject
@@ -186,13 +187,14 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
     }
 
     protected void configurePluginJarTask(Project project) {
-        Jar jarTask = (Jar)project.tasks.findByName('jar')
-        // re-enable, since Boot disable this
-        project.getTasks().getByName(JavaPlugin.JAR_TASK_NAME).setEnabled(true)
-        jarTask.exclude "application.yml"
-        jarTask.exclude "application.groovy"
-        jarTask.exclude "logback.groovy"
-        jarTask.exclude "logback.xml"
+        project.tasks.named(SpringBootPlugin.BOOT_JAR_TASK_NAME) {
+            it.enabled = false // Grails Plugins should not produce a bootJar
+        }
+        project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar) {
+            it.enabled = true
+            it.archiveClassifier.set('') // Remove '-plain' suffix from jar file name
+            it.exclude('application.yml', 'application.groovy', 'logback.groovy', 'logback.xml')
+        }
     }
 
     @CompileDynamic
