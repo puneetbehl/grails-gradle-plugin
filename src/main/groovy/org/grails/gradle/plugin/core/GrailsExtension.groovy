@@ -46,7 +46,7 @@ class GrailsExtension {
     /**
      * Whether java.time.* package should be a default import package
      */
-    boolean javaTime = true
+    boolean importJavaTime = true
 
     /**
      * Configure the reloading agent

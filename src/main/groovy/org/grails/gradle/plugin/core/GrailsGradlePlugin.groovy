@@ -292,7 +292,7 @@ class GrailsGradlePlugin extends GroovyPlugin {
 
         GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
         project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
-            if (grailsExt.javaTime) {
+            if (grailsExt.importJavaTime) {
                 groovyCompileTask.doFirst {
                     def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
                     if (configScriptStream != null) {
