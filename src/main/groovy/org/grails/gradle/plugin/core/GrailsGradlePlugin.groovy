@@ -142,8 +142,6 @@ class GrailsGradlePlugin extends GroovyPlugin {
 
         configureRunCommand(project)
 
-        configureJavaTime(project)
-
         configurePathingJar(project)
     }
 
@@ -287,6 +285,28 @@ class GrailsGradlePlugin extends GroovyPlugin {
                             details.useTarget(group: 'org.codehaus.groovy', name: details.requested.name, version: "$GroovySystem.version")
                             details.because "Use Groovy version $GroovySystem.version provided by Gradle"
                         }
+                    }
+                }
+            }
+        }
+
+        GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
+        project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
+            if (grailsExt.javaTime) {
+                groovyCompileTask.doFirst {
+                    def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
+                    if (configScriptStream != null) {
+                        def tempConfigScriptFile = File.createTempFile("build/GrailsCompilerConfig", ".groovy")
+                        tempConfigScriptFile.mkdirs()
+                        tempConfigScriptFile.deleteOnExit()
+
+                        def existingScript = groovyCompileTask.groovyOptions.configurationScript
+                        if (existingScript) {
+                            tempConfigScriptFile << existingScript.text
+                        }
+
+                        tempConfigScriptFile.text = configScriptStream.text
+                        groovyCompileTask.groovyOptions.configurationScript = tempConfigScriptFile
                     }
                 }
             }
@@ -652,31 +672,6 @@ class GrailsGradlePlugin extends GroovyPlugin {
 
     protected FileCollection resolveClassesDirs(SourceSetOutput output, Project project) {
         output?.classesDirs ?: project.files(new File(project.buildDir, "classes/main"))
-    }
-
-    protected void configureJavaTime(Project project) {
-        GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
-
-        project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
-            if (grailsExt.javaTime) {
-                groovyCompileTask.doFirst {
-                    def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
-                    if (configScriptStream != null) {
-                        def tempConfigScriptFile = File.createTempFile("build/GrailsCompilerConfig", ".groovy")
-                        tempConfigScriptFile.mkdirs()
-                        tempConfigScriptFile.deleteOnExit()
-
-                        def existingScript = groovyCompileTask.groovyOptions.configurationScript
-                        if (existingScript) {
-                            tempConfigScriptFile << existingScript.text
-                        }
-
-                        tempConfigScriptFile.text = configScriptStream.text
-                        groovyCompileTask.groovyOptions.configurationScript = tempConfigScriptFile
-                    }
-                }
-            }
-        }
     }
 
     @CompileDynamic
