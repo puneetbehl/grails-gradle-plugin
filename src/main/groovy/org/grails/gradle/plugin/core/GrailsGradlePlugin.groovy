@@ -289,6 +289,28 @@ class GrailsGradlePlugin extends GroovyPlugin {
                 }
             }
         }
+
+        GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
+        project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
+            if (grailsExt.importJavaTime) {
+                groovyCompileTask.doFirst {
+                    def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
+                    if (configScriptStream != null) {
+                        def tempConfigScriptFile = File.createTempFile("build/GrailsCompilerConfig", ".groovy")
+                        tempConfigScriptFile.mkdirs()
+                        tempConfigScriptFile.deleteOnExit()
+
+                        def existingScript = groovyCompileTask.groovyOptions.configurationScript
+                        if (existingScript) {
+                            tempConfigScriptFile << existingScript.text
+                        }
+
+                        tempConfigScriptFile.text = configScriptStream.text
+                        groovyCompileTask.groovyOptions.configurationScript = tempConfigScriptFile
+                    }
+                }
+            }
+        }
     }
 
     @CompileStatic

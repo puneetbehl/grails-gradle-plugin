@@ -80,7 +80,6 @@ class GroovyPagePlugin implements Plugin<Project> {
             }
         }
 
-
         compileGroovyPages.dependsOn( allTasks.findByName("classes") )
         compileGroovyPages.dependsOn( compileWebappGroovyPages )
 
