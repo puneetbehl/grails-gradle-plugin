@@ -102,13 +102,13 @@ class GrailsGradlePlugin extends GroovyPlugin {
 
         applyDefaultPlugins(project)
 
+        registerGrailsExtension(project)
+
         configureGroovy(project)
 
         configureMicronaut(project)
 
         registerToolingModelBuilder(project, registry)
-
-        registerGrailsExtension(project)
 
         applyBasePlugins(project)
 
