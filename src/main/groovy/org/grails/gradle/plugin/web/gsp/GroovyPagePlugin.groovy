@@ -68,6 +68,7 @@ class GroovyPagePlugin implements Plugin<Project> {
 
         compileWebappGroovyPages.setClasspath( allClasspath )
 
+        registerGrailsExtension(project)
 
         project.afterEvaluate {
             GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
@@ -114,6 +115,12 @@ class GroovyPagePlugin implements Plugin<Project> {
                     jar.from destDir
                 }
             }
+        }
+    }
+
+    protected GrailsExtension registerGrailsExtension(Project project) {
+        if (project.extensions.findByName("grails") == null) {
+            project.extensions.add("grails", new GrailsExtension(project))
         }
     }
 
