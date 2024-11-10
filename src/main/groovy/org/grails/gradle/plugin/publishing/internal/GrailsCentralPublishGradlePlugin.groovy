@@ -343,9 +343,12 @@ BINTRAY_KEY=key
         } catch (Exception e) {
             directory = project.sourceSets.main.output.classesDirs
         }
-        [source    : "${directory}/META-INF/grails-plugin.xml".toString(),
-         classifier: getDefaultClassifier(),
-         extension : 'xml']
+        String pluginXml = "${directory}/META-INF/grails-plugin.xml".toString()
+        new File(pluginXml).exists()? [
+            source    : pluginXml,
+            classifier: getDefaultClassifier(),
+            extension : 'xml'
+        ] : null
     }
 
     protected String getDefaultClassifier() {
