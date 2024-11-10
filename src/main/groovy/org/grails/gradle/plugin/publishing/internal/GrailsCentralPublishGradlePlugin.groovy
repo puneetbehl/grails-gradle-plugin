@@ -336,9 +336,12 @@ BINTRAY_KEY=key
     }
 
     protected Map<String, String> getDefaultExtraArtifact(Project project) {
-        [source    : "${project.sourceSets.main.groovy.getClassesDirectory().get().getAsFile()}/META-INF/grails-plugin.xml",
-         classifier: getDefaultClassifier(),
-         extension : 'xml']
+        String pluginXml = "${project.sourceSets.main.groovy.getClassesDirectory().get().getAsFile()}/META-INF/grails-plugin.xml".toString()
+        new File(pluginXml).exists()? [
+            source    : pluginXml,
+            classifier: getDefaultClassifier(),
+            extension : 'xml'
+        ] : null
     }
 
     protected String getDefaultClassifier() {
