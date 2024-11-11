@@ -9,5 +9,6 @@ org.grails.gradle.plugin.profiles.tasks
 org.grails.gradle.plugin.publishing.internal
 org.grails.gradle.plugin.run
 org.grails.gradle.plugin.util
+org.grails.gradle.plugin.watch
 org.grails.gradle.plugin.web
 org.grails.gradle.plugin.web.gsp
