@@ -111,6 +111,8 @@ class GrailsPublishExtension {
      */
     String sonatypeOssPassword
 
+    String snapshotUrl
+
     License getLicense() {
         return license
     }

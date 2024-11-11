@@ -131,7 +131,7 @@ BINTRAY_KEY=key
                                 username = artifactoryUsername
                                 password = artifactoryPassword
                             }
-                            url getDefaultGrailsCentralSnapshotRepo()
+                            url gpe.snapshotUrl? gpe.snapshotUrl : getDefaultGrailsCentralSnapshotRepo()
                         }
                     }
                 }
