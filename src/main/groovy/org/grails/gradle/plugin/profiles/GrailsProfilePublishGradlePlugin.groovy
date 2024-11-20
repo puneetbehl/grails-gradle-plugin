@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.grails.gradle.plugin.profiles.internal
+package org.grails.gradle.plugin.profiles
 
 
 import groovy.transform.CompileStatic
@@ -25,8 +25,7 @@ import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.artifacts.SelfResolvingDependency
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.bundling.Jar
-import org.grails.gradle.plugin.profiles.GrailsProfileGradlePlugin
-import org.grails.gradle.plugin.publishing.internal.GrailsCentralPublishGradlePlugin
+import org.grails.gradle.plugin.publishing.GrailsPublishGradlePlugin
 
 import java.nio.file.Files
 
@@ -39,7 +38,7 @@ import static org.gradle.api.plugins.BasePlugin.BUILD_GROUP
  * @since 3.1
  */
 @CompileStatic
-class GrailsProfilePublishGradlePlugin extends GrailsCentralPublishGradlePlugin {
+class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
 
     @Override
     void apply(Project project) {
@@ -56,16 +55,6 @@ class GrailsProfilePublishGradlePlugin extends GrailsCentralPublishGradlePlugin 
     }
 
     @Override
-    protected String getDefaultGrailsCentralReleaseRepo() {
-        "https://repo.grails.org/grails/libs-releases-local"
-    }
-
-    @Override
-    protected String getDefaultGrailsCentralSnapshotRepo() {
-        "https://repo.grails.org/grails/libs-snapshots-local"
-    }
-
-    @Override
     protected Map<String, String> getDefaultExtraArtifact(Project project) {
         [source: "${project.buildDir}/classes/profile/META-INF/grails-profile/profile.yml".toString(),
          classifier: defaultClassifier,
@@ -75,11 +64,6 @@ class GrailsProfilePublishGradlePlugin extends GrailsCentralPublishGradlePlugin 
     @Override
     protected String getDefaultClassifier() {
         'profile'
-    }
-
-    @Override
-    protected String getDefaultRepo() {
-        'profiles'
     }
 
     @Override

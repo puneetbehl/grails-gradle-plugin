@@ -138,15 +138,15 @@ gradlePlugin {
         }
         grailsPluginPublish {
             displayName = "Grails Publish Gradle Plugin"
-            description = 'A plugin to setup publishing to Grails central repo'
-            id = 'org.grails.internal.grails-plugin-publish'
-            implementationClass = 'org.grails.gradle.plugin.publishing.internal.GrailsCentralPublishGradlePlugin'
+            description = 'A plugin to assist in publishing Grails related artifacts'
+            id = 'org.grails.grails-plugin-publish'
+            implementationClass = 'org.grails.gradle.plugin.publishing.GrailsCentralPublishGradlePlugin'
         }
         grailsProfilePublish {
             displayName = "Grails Profile Publish Plugin"
             description = 'A plugin for publishing profiles'
-            id = 'org.grails.internal.grails-profile-publish'
-            implementationClass = 'org.grails.gradle.plugin.profiles.internal.GrailsProfilePublishGradlePlugin'
+            id = 'org.grails.grails-profile-publish'
+            implementationClass = 'org.grails.gradle.plugin.profiles.GrailsProfilePublishGradlePlugin'
         }
     }
 }

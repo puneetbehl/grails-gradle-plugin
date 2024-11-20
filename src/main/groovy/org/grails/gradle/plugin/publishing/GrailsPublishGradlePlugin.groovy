@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 //file:noinspection DuplicatedCode
-package org.grails.gradle.plugin.publishing.internal
+package org.grails.gradle.plugin.publishing
 
 import grails.util.GrailsNameUtils
 import io.github.gradlenexus.publishplugin.NexusPublishPlugin
@@ -27,7 +27,6 @@ import org.gradle.api.plugins.PluginManager
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.TaskContainer
-import org.gradle.api.tasks.bundling.Jar
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.plugins.signing.SigningPlugin
@@ -37,23 +36,17 @@ import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_PASSWORD
 import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEYRING
 
 /**
- * A plugin to setup publishing to Grails central repo
+ * A plugin to ease publishing Grails related artifacts
  *
  * @author Graeme Rocher
  * @since 3.1
  */
-class GrailsCentralPublishGradlePlugin implements Plugin<Project> {
+class GrailsPublishGradlePlugin implements Plugin<Project> {
 
     String getErrorMessage(String missingSetting) {
         return """No '$missingSetting' was specified. Please provide a valid publishing configuration. Example:
 
 grailsPublish {
-    user = 'user'
-    key = 'key'
-    userOrg = 'my-company' // optional, otherwise published to personal bintray account
-    repo = 'plugins' // optional, defaults to 'plugins'
-
-
     websiteUrl = 'http://foo.com/myplugin'
     license {
         name = 'Apache-2.0'
@@ -68,8 +61,6 @@ grailsPublish {
 or
 
 grailsPublish {
-    user = 'user'
-    key = 'key'
     githubSlug = 'foo/bar'
     license {
         name = 'Apache-2.0'
@@ -79,15 +70,20 @@ grailsPublish {
     developers = [johndoe:"John Doe"]
 }
 
-Your publishing user and key can also be placed in PROJECT_HOME/gradle.properties or USER_HOME/gradle.properties. For example:
+The credentials and connection url must be specified as a project property or an environment variable:
 
-bintrayUser=user
-bintrayKey=key
+Artifactory Environment Variables are:
+    ARTIFACTORY_USERNAME
+    ARTIFACTORY_PASSWORD
+    ARTIFACTORY_URL
 
-Or using environment variables:
+Sonatype Environment Variables are:
+    SONATYPE_NEXUS_URL
+    SONATYPE_SNAPSHOT_URL
+    SONATYPE_USERNAME
+    SONATYPE_PASSWORD
+    SONATYPE_STAGING_PROFILE_ID
 
-BINTRAY_USER=user
-BINTRAY_KEY=key
 """
     }
 
@@ -97,13 +93,14 @@ BINTRAY_KEY=key
         final TaskContainer taskContainer = project.tasks
         final GrailsPublishExtension gpe = extensionContainer.create("grailsPublish", GrailsPublishExtension)
 
-        final String artifactoryUsername = project.hasProperty("artifactoryPublishUsername") ? project.artifactoryPublishUsername : System.getenv("ARTIFACTORY_USERNAME") ?: ''
-        final String artifactoryPassword = project.hasProperty("artifactoryPublishPassword") ? project.artifactoryPublishPassword : System.getenv("ARTIFACTORY_PASSWORD") ?: ''
-        final String ossNexusUrl = project.hasProperty("sonatypeNexusUrl") ? project.sonatypeNexusUrl : System.getenv("SONATYPE_NEXUS_URL") ?: ''
-        final String ossSnapshotUrl = project.hasProperty("sonatypeSnapshotUrl") ? project.sonatypeSnapshotUrl : System.getenv("SONATYPE_SNAPSHOT_URL") ?: ''
-        final String ossUser = project.hasProperty("sonatypeOssUsername") ? project.sonatypeOssUsername : System.getenv("SONATYPE_USERNAME") ?: ''
-        final String ossPass = project.hasProperty("sonatypeOssPassword") ? project.sonatypeOssPassword : System.getenv("SONATYPE_PASSWORD") ?: ''
-        final String ossStagingProfileId = project.hasProperty("sonatypeOssStagingProfileId") ? project.sonatypeOssStagingProfileId : System.getenv("SONATYPE_STAGING_PROFILE_ID") ?: ''
+        final String artifactoryUsername = project.findProperty("artifactoryPublishUsername") ?: System.getenv("ARTIFACTORY_USERNAME") ?: ''
+        final String artifactoryPassword = project.findProperty("artifactoryPublishPassword") ?: System.getenv("ARTIFACTORY_PASSWORD") ?: ''
+        final String artifactoryPublishUrl = project.findProperty("artifactoryPublishUrl") ?: System.getenv("ARTIFACTORY_URL") ?: ''
+        final String sonatypeNexusUrl = project.findProperty("sonatypeNexusUrl") ?: System.getenv("SONATYPE_NEXUS_URL") ?: ''
+        final String sonatypeSnapshotUrl = project.findProperty("sonatypeSnapshotUrl") ?: System.getenv("SONATYPE_SNAPSHOT_URL") ?: ''
+        final String sonatypeUsername = project.findProperty("sonatypeUsername") ?: System.getenv("SONATYPE_USERNAME") ?: ''
+        final String sonatypePassword = project.findProperty("sonatypePassword") ?: System.getenv("SONATYPE_PASSWORD") ?: ''
+        final String sonatypeStagingProfileId = project.findProperty("sonatypeStagingProfileId") ?: System.getenv("SONATYPE_STAGING_PROFILE_ID") ?: ''
 
         final ExtraPropertiesExtension extraPropertiesExtension = extensionContainer.findByType(ExtraPropertiesExtension)
 
@@ -111,27 +108,28 @@ BINTRAY_KEY=key
         extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.hasProperty(SIGNING_PASSWORD) ? project[SIGNING_PASSWORD] : System.getenv("SIGNING_PASSPHRASE") ?: null)
         extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.hasProperty(SIGNING_KEYRING) ? project[SIGNING_KEYRING] : System.getenv("SIGNING_KEYRING") ?: null)
 
-
         project.afterEvaluate {
+            RepositoryType snapshotType = gpe.snapshotRepoType
             boolean isSnapshot = project.version.endsWith("SNAPSHOT")
             boolean isRelease = !isSnapshot
-            final PluginManager pluginManager = project.getPluginManager()
-            pluginManager.apply(MavenPublishPlugin.class)
-
-            // Remove "plain" archive classifier, unless bootJar or bootWar are enabled
-            if (!taskContainer.findByName("bootJar")?.enabled && !taskContainer.findByName("bootWar")?.enabled) {
-                (taskContainer.findByName("jar") as Jar).archiveClassifier.set("")
-            }
+            final PluginManager projectPluginManager = project.getPluginManager()
+            final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
+            projectPluginManager.apply(MavenPublishPlugin.class)
 
             project.publishing {
-                if (isSnapshot) {
+                if (isSnapshot && snapshotType == RepositoryType.ARTIFACTORY) {
+                    System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
                             credentials {
                                 username = artifactoryUsername
                                 password = artifactoryPassword
                             }
-                            url gpe.snapshotUrl? gpe.snapshotUrl : getDefaultGrailsCentralSnapshotRepo()
+
+                            if(!artifactoryPublishUrl) {
+                                throw new RuntimeException("Could not locate a project property of `artifactoryPublishUrl` or an environment variable of `ARTIFACTORY_URL` for the snapshot url")
+                            }
+                            url artifactoryPublishUrl
                         }
                     }
                 }
@@ -157,6 +155,7 @@ BINTRAY_KEY=key
                         pom.withXml {
                             Node pomNode = asNode()
 
+                            // Prevent multiple dependencyManagement nodes
                             if (pomNode.dependencyManagement) {
                                 pomNode.dependencyManagement[0].replaceNode {}
                             }
@@ -234,7 +233,6 @@ BINTRAY_KEY=key
                                     }
 
                                     if (gpe.developers) {
-
                                         delegate.developers {
                                             for (entry in gpe.developers.entrySet()) {
                                                 delegate.developer {
@@ -264,37 +262,35 @@ BINTRAY_KEY=key
                 }
             }
 
-            if (isRelease) {
-                pluginManager.apply(NexusPublishPlugin.class)
-                pluginManager.apply(SigningPlugin.class)
+            if (isRelease || (isSnapshot && snapshotType == RepositoryType.CENTRAL)) {
+                rootProjectPluginManager.apply(NexusPublishPlugin.class)
+                projectPluginManager.apply(SigningPlugin.class)
 
                 extensionContainer.configure(SigningExtension, {
                     it.required = isRelease
                     it.sign project.publishing.publications.maven
                 })
 
-                project.tasks.withType(io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository).configureEach {
-                    shouldRunAfter(project.tasks.withType(Sign))
+                project.rootProject.tasks.withType(io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository).configureEach { io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository task ->
+                    task.setShouldRunAfter(project.tasks.withType(Sign))
                 }
 
                 project.tasks.withType(Sign) {
                     onlyIf { isRelease }
                 }
-            }
 
-            if (isRelease) {
-                project.nexusPublishing {
+                project.rootProject.nexusPublishing {
                     repositories {
                         sonatype {
-                            if (ossNexusUrl) {
-                                nexusUrl = project.uri(ossNexusUrl)
+                            if (sonatypeNexusUrl) {
+                                nexusUrl = project.uri(sonatypeNexusUrl)
                             }
-                            if (ossSnapshotUrl) {
-                                snapshotRepositoryUrl = project.uri(ossSnapshotUrl)
+                            if (sonatypeSnapshotUrl) {
+                                snapshotRepositoryUrl = project.uri(sonatypeSnapshotUrl)
                             }
-                            username = ossUser
-                            password = ossPass
-                            stagingProfileId = ossStagingProfileId
+                            username = sonatypeUsername
+                            password = sonatypePassword
+                            stagingProfileId = sonatypeStagingProfileId
                         }
                     }
                 }
@@ -323,18 +319,6 @@ BINTRAY_KEY=key
         publication.from project.components.java
     }
 
-    protected String getDefaultArtifactType() {
-        "grails-$defaultClassifier"
-    }
-
-    protected String getDefaultGrailsCentralReleaseRepo() {
-        "https://repo.grails.org/grails/plugins3-releases-local"
-    }
-
-    protected String getDefaultGrailsCentralSnapshotRepo() {
-        "https://repo.grails.org/grails/plugins3-snapshots-local"
-    }
-
     protected Map<String, String> getDefaultExtraArtifact(Project project) {
         String pluginXml = "${project.sourceSets.main.groovy.getClassesDirectory().get().getAsFile()}/META-INF/grails-plugin.xml".toString()
         new File(pluginXml).exists()? [
@@ -346,14 +330,6 @@ BINTRAY_KEY=key
 
     protected String getDefaultClassifier() {
         "plugin"
-    }
-
-    protected String getDefaultDescription(Project project) {
-        "Grails ${project.name} $defaultClassifier"
-    }
-
-    protected String getDefaultRepo() {
-        "plugins"
     }
 }
 

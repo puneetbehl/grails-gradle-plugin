@@ -25,10 +25,6 @@ grails-gsp
 ---------
 * Configure GSP Compiling Task
 
-grails-plugin-publish
----------
-_Todo_: Add the docs
-
 grails-plugin
 ---------
 * Configure Ast Sources
@@ -40,6 +36,58 @@ grails-plugin
 grails-profile
 ---------
 _Todo_: Add the docs
+
+grails-profile-publish
+---------
+_Todo_: Add the docs
+
+grails-publish
+---------
+A Gradle plugin to simplify publishing to either an Artifactory or Maven Central endpoint for snapshots & to Maven Central for releases.  
+
+Example Usage:
+
+    grailsPublish {
+        websiteUrl = 'http://foo.com/myplugin'
+        license {
+            name = 'Apache-2.0'
+        }
+        issueTrackerUrl = 'http://github.com/myname/myplugin/issues'
+        vcsUrl = 'http://github.com/myname/myplugin'
+        title = "My plugin title"
+        desc = "My plugin description"
+        developers = [johndoe:"John Doe"]
+    }
+
+or
+
+    grailsPublish {
+        githubSlug = 'foo/bar'
+        license {
+            name = 'Apache-2.0'
+        }
+        title = "My plugin title"
+        desc = "My plugin description"
+        developers = [johndoe:"John Doe"]
+    }
+
+By default this plugin will publish to the specified Artifactory instance for snapshots, and Maven Central for releases.  To change the snapshot publish behavior, you can set the `snapshotRepoType` to `RepositoryType.CENTRAL`.
+
+The credentials and connection url must be specified as a project property or an environment variable.
+
+Artifactory Environment Variables are:
+
+    ARTIFACTORY_USERNAME
+    ARTIFACTORY_PASSWORD
+    ARTIFACTORY_URL
+
+Sonatype Environment Variables are:
+
+    SONATYPE_NEXUS_URL
+    SONATYPE_SNAPSHOT_URL
+    SONATYPE_USERNAME
+    SONATYPE_PASSWORD
+    SONATYPE_STAGING_PROFILE_ID
 
 grails-web
 ---------

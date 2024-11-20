@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.grails.gradle.plugin.publishing.internal
+package org.grails.gradle.plugin.publishing
 
 import groovy.transform.CompileStatic
 import org.gradle.util.ConfigureUtil
@@ -25,6 +25,10 @@ import org.gradle.util.ConfigureUtil
  */
 @CompileStatic
 class GrailsPublishExtension {
+    /**
+     * Determines the snapshot repository to publish to
+     */
+    RepositoryType snapshotRepoType = RepositoryType.ARTIFACTORY
 
     /**
      * The slug from github
@@ -32,22 +36,12 @@ class GrailsPublishExtension {
     String githubSlug
 
     /**
-     * The the publishing user
-     */
-    String user
-
-    /**
-     * The the publishing key
-     */
-    String key
-
-    /**
-     * The website URL of the plugin
+     * The website URL of the published project
      */
     String websiteUrl
 
     /**
-     * The source control URL of the plugin
+     * The source control URL of the project
      */
     String vcsUrl
 
@@ -57,12 +51,12 @@ class GrailsPublishExtension {
     License license = new License()
 
     /**
-     * The developers of the plugin
+     * The developers of the project
      */
     Map<String, String> developers = [:]
 
     /**
-     * Title of the plugin, defaults to the project name
+     * Title of the project, defaults to the project name
      */
     String title
 
@@ -72,46 +66,9 @@ class GrailsPublishExtension {
     String desc
 
     /**
-     * THe organisation on bintray
-     */
-    String userOrg
-
-    /**
-     * THe repository on bintray
-     */
-    String repo
-
-    /**
      * The issue tracker URL
      */
     String issueTrackerUrl
-
-    /**
-     * Whether to GPG sign
-     */
-    boolean gpgSign = false
-
-    /**
-     * The passphrase to sign, only required if `gpgSign == true`
-     */
-    String signingPassphrase
-
-    /**
-     * Whether to sync to Maven central
-     */
-    boolean mavenCentralSync = false
-
-    /**
-     * Username for maven central
-     */
-    String sonatypeOssUsername
-
-    /**
-     * Password for maven central
-     */
-    String sonatypeOssPassword
-
-    String snapshotUrl
 
     License getLicense() {
         return license
