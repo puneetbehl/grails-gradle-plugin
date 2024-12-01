@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: ['17']
+        java: ['17', '21']
     env:
       WORKSPACE: ${{ github.workspace }}
     steps:
@@ -67,8 +67,8 @@ jobs:
     permissions:
       contents: write
     env:
-      GIT_USER_NAME: 'grails-build'
-      GIT_USER_EMAIL: 'grails-build@users.noreply.github.com'
+      GIT_USER_NAME: grails-build
+      GIT_USER_EMAIL: grails-build@users.noreply.github.com
     steps:
       - name: "📥 Checkout repository"
         uses: actions/checkout@v4
@@ -81,15 +81,13 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           develocity-access-key: ${{ secrets.GRADLE_ENTERPRISE_ACCESS_KEY }}
-      - name: Generate Groovydoc
+      - name: "📜 Generate Groovydoc"
         id: groovydoc
-        uses: gradle/gradle-build-action@v3
         env:
           DEVELOCITY_BUILD_CACHE_NODE_USER: ${{ secrets.GRADLE_ENTERPRISE_BUILD_CACHE_NODE_USER }}
           DEVELOCITY_BUILD_CACHE_NODE_KEY: ${{ secrets.GRADLE_ENTERPRISE_BUILD_CACHE_NODE_KEY }}
-        with:
-          arguments: groovydoc
-      - name: Publish to Github Pages
+        run: ./gradle groovydoc
+      - name: "🚀 Publish to Github Pages"
         id: docs
         if: success()
         uses: grails/github-pages-deploy-action@v2
@@ -100,6 +98,5 @@ jobs:
           BRANCH: gh-pages
           FOLDER: build/docs
           DOC_FOLDER: gh-pages
-          COMMIT_EMAIL: behlp@unityfoundation.io
-          COMMIT_NAME: Puneet Behl
-          VERSION: ${{ needs.publish.outputs.release_version }}
+          COMMIT_EMAIL: ${{ env.GIT_USER_EMAIL }}
+          COMMIT_NAME: ${{ env.GIT_USER_NAME }}

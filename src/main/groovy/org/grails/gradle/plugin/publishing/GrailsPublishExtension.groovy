@@ -28,7 +28,7 @@ class GrailsPublishExtension {
     /**
      * Determines the snapshot repository to publish to
      */
-    RepositoryType snapshotRepoType = RepositoryType.ARTIFACTORY
+    RepositoryTarget snapshotRepoType = RepositoryTarget.MAVEN_PUBLISH
 
     /**
      * The slug from github

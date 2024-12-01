@@ -17,6 +17,7 @@
 package org.grails.gradle.plugin.publishing
 
 import grails.util.GrailsNameUtils
+import io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository
 import io.github.gradlenexus.publishplugin.NexusPublishPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -51,11 +52,11 @@ grailsPublish {
     license {
         name = 'Apache-2.0'
     }
-    issueTrackerUrl = 'http://github.com/myname/myplugin/issues'
-    vcsUrl = 'http://github.com/myname/myplugin'
-    title = "My plugin title"
-    desc = "My plugin description"
-    developers = [johndoe:"John Doe"]
+    issueTrackerUrl = 'https://github.com/myname/myplugin/issues'
+    vcsUrl = 'https://github.com/myname/myplugin'
+    title = 'My plugin title'
+    desc = 'My plugin description'
+    developers = [johndoe: 'John Doe']
 }
 
 or
@@ -65,19 +66,19 @@ grailsPublish {
     license {
         name = 'Apache-2.0'
     }
-    title = "My plugin title"
-    desc = "My plugin description"
-    developers = [johndoe:"John Doe"]
+    title = 'My plugin title'
+    desc = 'My plugin description'
+    developers = [johndoe: 'John Doe']
 }
 
 The credentials and connection url must be specified as a project property or an environment variable:
 
-Artifactory Environment Variables are:
+`MAVEN_PUBLISH` Environment Variables are:
     ARTIFACTORY_USERNAME
     ARTIFACTORY_PASSWORD
     ARTIFACTORY_URL
 
-Sonatype Environment Variables are:
+`NEXUS_PUBLISH` Environment Variables are:
     SONATYPE_NEXUS_URL
     SONATYPE_SNAPSHOT_URL
     SONATYPE_USERNAME
@@ -91,33 +92,33 @@ Sonatype Environment Variables are:
     void apply(Project project) {
         final ExtensionContainer extensionContainer = project.extensions
         final TaskContainer taskContainer = project.tasks
-        final GrailsPublishExtension gpe = extensionContainer.create("grailsPublish", GrailsPublishExtension)
+        final GrailsPublishExtension gpe = extensionContainer.create('grailsPublish', GrailsPublishExtension)
 
-        final String artifactoryUsername = project.findProperty("artifactoryPublishUsername") ?: System.getenv("ARTIFACTORY_USERNAME") ?: ''
-        final String artifactoryPassword = project.findProperty("artifactoryPublishPassword") ?: System.getenv("ARTIFACTORY_PASSWORD") ?: ''
-        final String artifactoryPublishUrl = project.findProperty("artifactoryPublishUrl") ?: System.getenv("ARTIFACTORY_URL") ?: ''
-        final String sonatypeNexusUrl = project.findProperty("sonatypeNexusUrl") ?: System.getenv("SONATYPE_NEXUS_URL") ?: ''
-        final String sonatypeSnapshotUrl = project.findProperty("sonatypeSnapshotUrl") ?: System.getenv("SONATYPE_SNAPSHOT_URL") ?: ''
-        final String sonatypeUsername = project.findProperty("sonatypeUsername") ?: System.getenv("SONATYPE_USERNAME") ?: ''
-        final String sonatypePassword = project.findProperty("sonatypePassword") ?: System.getenv("SONATYPE_PASSWORD") ?: ''
-        final String sonatypeStagingProfileId = project.findProperty("sonatypeStagingProfileId") ?: System.getenv("SONATYPE_STAGING_PROFILE_ID") ?: ''
+        final String artifactoryUsername = project.findProperty('artifactoryPublishUsername') ?: System.getenv('ARTIFACTORY_USERNAME') ?: ''
+        final String artifactoryPassword = project.findProperty('artifactoryPublishPassword') ?: System.getenv('ARTIFACTORY_PASSWORD') ?: ''
+        final String artifactoryPublishUrl = project.findProperty('artifactoryPublishUrl') ?: System.getenv('ARTIFACTORY_URL') ?: ''
+        final String sonatypeNexusUrl = project.findProperty('sonatypeNexusUrl') ?: System.getenv('SONATYPE_NEXUS_URL') ?: ''
+        final String sonatypeSnapshotUrl = project.findProperty('sonatypeSnapshotUrl') ?: System.getenv('SONATYPE_SNAPSHOT_URL') ?: ''
+        final String sonatypeUsername = project.findProperty('sonatypeUsername') ?: System.getenv('SONATYPE_USERNAME') ?: ''
+        final String sonatypePassword = project.findProperty('sonatypePassword') ?: System.getenv('SONATYPE_PASSWORD') ?: ''
+        final String sonatypeStagingProfileId = project.findProperty('sonatypeStagingProfileId') ?: System.getenv('SONATYPE_STAGING_PROFILE_ID') ?: ''
 
         final ExtraPropertiesExtension extraPropertiesExtension = extensionContainer.findByType(ExtraPropertiesExtension)
 
-        extraPropertiesExtension.setProperty(SIGNING_KEY_ID, project.hasProperty(SIGNING_KEY_ID) ? project[SIGNING_KEY_ID] : System.getenv("SIGNING_KEY") ?: null)
-        extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.hasProperty(SIGNING_PASSWORD) ? project[SIGNING_PASSWORD] : System.getenv("SIGNING_PASSPHRASE") ?: null)
-        extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.hasProperty(SIGNING_KEYRING) ? project[SIGNING_KEYRING] : System.getenv("SIGNING_KEYRING") ?: null)
+        extraPropertiesExtension.setProperty(SIGNING_KEY_ID, project.hasProperty(SIGNING_KEY_ID) ? project[SIGNING_KEY_ID] : System.getenv('SIGNING_KEY') ?: null)
+        extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.hasProperty(SIGNING_PASSWORD) ? project[SIGNING_PASSWORD] : System.getenv('SIGNING_PASSPHRASE') ?: null)
+        extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.hasProperty(SIGNING_KEYRING) ? project[SIGNING_KEYRING] : System.getenv('SIGNING_KEYRING') ?: null)
 
         project.afterEvaluate {
-            RepositoryType snapshotType = gpe.snapshotRepoType
-            boolean isSnapshot = project.version.endsWith("SNAPSHOT")
+            RepositoryTarget snapshotType = gpe.snapshotRepoType
+            boolean isSnapshot = project.version.endsWith('SNAPSHOT')
             boolean isRelease = !isSnapshot
             final PluginManager projectPluginManager = project.getPluginManager()
             final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
-            projectPluginManager.apply(MavenPublishPlugin.class)
+            projectPluginManager.apply(MavenPublishPlugin)
 
             project.publishing {
-                if (isSnapshot && snapshotType == RepositoryType.ARTIFACTORY) {
+                if (isSnapshot && snapshotType == RepositoryTarget.MAVEN_PUBLISH) {
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
@@ -126,10 +127,10 @@ Sonatype Environment Variables are:
                                 password = artifactoryPassword
                             }
 
-                            if(!artifactoryPublishUrl) {
-                                throw new RuntimeException("Could not locate a project property of `artifactoryPublishUrl` or an environment variable of `ARTIFACTORY_URL` for the snapshot url")
+                            if (!artifactoryPublishUrl) {
+                                throw new RuntimeException('Could not locate a project property of `artifactoryPublishUrl` or an environment variable of `ARTIFACTORY_URL` for the snapshot url')
                             }
-                            url artifactoryPublishUrl
+                            url = artifactoryPublishUrl
                         }
                     }
                 }
@@ -139,11 +140,11 @@ Sonatype Environment Variables are:
                         artifactId project.name
 
                         doAddArtefact(project, delegate)
-                        def sourcesJar = taskContainer.findByName("sourcesJar")
+                        def sourcesJar = taskContainer.findByName('sourcesJar')
                         if (sourcesJar != null) {
                             artifact sourcesJar
                         }
-                        def javadocJar = taskContainer.findByName("javadocJar")
+                        def javadocJar = taskContainer.findByName('javadocJar')
                         if (javadocJar != null) {
                             artifact javadocJar
                         }
@@ -262,17 +263,17 @@ Sonatype Environment Variables are:
                 }
             }
 
-            if (isRelease || (isSnapshot && snapshotType == RepositoryType.CENTRAL)) {
-                rootProjectPluginManager.apply(NexusPublishPlugin.class)
-                projectPluginManager.apply(SigningPlugin.class)
+            if (isRelease || (isSnapshot && snapshotType == RepositoryTarget.NEXUS_PUBLISH)) {
+                rootProjectPluginManager.apply(NexusPublishPlugin)
+                projectPluginManager.apply(SigningPlugin)
 
                 extensionContainer.configure(SigningExtension, {
                     it.required = isRelease
                     it.sign project.publishing.publications.maven
                 })
 
-                project.rootProject.tasks.withType(io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository).configureEach { io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository task ->
-                    task.setShouldRunAfter(project.tasks.withType(Sign))
+                project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
+                    task.shouldRunAfter = project.tasks.withType(Sign)
                 }
 
                 project.tasks.withType(Sign) {

@@ -43,7 +43,10 @@ _Todo_: Add the docs
 
 grails-publish
 ---------
-A Gradle plugin to simplify publishing to either an Artifactory or Maven Central endpoint for snapshots & to Maven Central for releases.  
+A Gradle plugin to simplify publishing:
+
+1. snapshots with either the Maven Publish gradle plugin or Nexus Publish gradle plugin.
+2. releases with the Nexus Publish gradle plugin.
 
 Example Usage:
 
@@ -52,11 +55,11 @@ Example Usage:
         license {
             name = 'Apache-2.0'
         }
-        issueTrackerUrl = 'http://github.com/myname/myplugin/issues'
-        vcsUrl = 'http://github.com/myname/myplugin'
-        title = "My plugin title"
-        desc = "My plugin description"
-        developers = [johndoe:"John Doe"]
+        issueTrackerUrl = 'https://github.com/myname/myplugin/issues'
+        vcsUrl = 'https://github.com/myname/myplugin'
+        title = 'My plugin title'
+        desc = 'My plugin description'
+        developers = [johndoe: 'John Doe']
     }
 
 or
@@ -66,22 +69,22 @@ or
         license {
             name = 'Apache-2.0'
         }
-        title = "My plugin title"
-        desc = "My plugin description"
-        developers = [johndoe:"John Doe"]
+        title = 'My plugin title'
+        desc = 'My plugin description'
+        developers = [johndoe: 'John Doe']
     }
 
-By default this plugin will publish to the specified Artifactory instance for snapshots, and Maven Central for releases.  To change the snapshot publish behavior, you can set the `snapshotRepoType` to `RepositoryType.CENTRAL`.
+By default this plugin will publish to the specified `MAVEN_PUBLISH` instance for snapshots, and `NEXUS_PUBLISH` for releases.  To change the snapshot publish behavior, you can set the `snapshotRepoType` to `RepositoryTarget.NEXUS_PUBLISH`.
 
 The credentials and connection url must be specified as a project property or an environment variable.
 
-Artifactory Environment Variables are:
+The `MAVEN_PUBLISH` Environment Variables are:
 
     ARTIFACTORY_USERNAME
     ARTIFACTORY_PASSWORD
     ARTIFACTORY_URL
 
-Sonatype Environment Variables are:
+The `NEXUS_PUBLISH` Environment Variables are:
 
     SONATYPE_NEXUS_URL
     SONATYPE_SNAPSHOT_URL
