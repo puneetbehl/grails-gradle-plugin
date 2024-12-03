@@ -136,7 +136,7 @@ gradlePlugin {
             id = 'org.grails.grails-web'
             implementationClass = 'org.grails.gradle.plugin.web.GrailsWebGradlePlugin'
         }
-        grailsPluginPublish {
+        grailsPublish {
             displayName = "Grails Publish Gradle Plugin"
             description = 'A plugin to assist in publishing Grails related artifacts'
             id = 'org.grails.grails-publish'
