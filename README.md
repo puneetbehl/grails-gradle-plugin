@@ -71,7 +71,7 @@ or
         developers = [johndoe: 'John Doe']
     }
 
-By default this plugin will publish to the specified `MAVEN_PUBLISH` instance for snapshots, and `NEXUS_PUBLISH` for releases.  To change the snapshot publish behavior, set `snapshotRepoType` to `PublishType.NEXUS_PUBLISH`. To change the release publish behavior,  set `releaseRepoType` to `PublishType.NEXUS_PUBLISH`.
+By default, this plugin will publish to the specified `MAVEN_PUBLISH` instance for snapshots, and `NEXUS_PUBLISH` for releases.  To change the snapshot publish behavior, set `snapshotRepoType` to `PublishType.NEXUS_PUBLISH`. To change the release publish behavior, set `releaseRepoType` to `PublishType.MAVEN_PUBLISH`.
 
 The credentials and connection url must be specified as a project property or an environment variable.
 
@@ -83,10 +83,10 @@ The credentials and connection url must be specified as a project property or an
 
 `NEXUS_PUBLISH` Environment Variables are:
 
-    NEXUS_PUBLISH_URL
-    NEXUS_PUBLISH_SNAPSHOT_URL
     NEXUS_PUBLISH_USERNAME
     NEXUS_PUBLISH_PASSWORD
+    NEXUS_PUBLISH_URL
+    NEXUS_PUBLISH_SNAPSHOT_URL
     NEXUS_PUBLISH_STAGING_PROFILE_ID
 
 grails-web

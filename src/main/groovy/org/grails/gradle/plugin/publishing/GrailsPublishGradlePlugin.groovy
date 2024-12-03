@@ -81,10 +81,10 @@ The credentials and connection url must be specified as a project property or an
     MAVEN_PUBLISH_URL
 
 `NEXUS_PUBLISH` Environment Variables are:
-    NEXUS_PUBLISH_URL
-    NEXUS_PUBLISH_SNAPSHOT_URL
     NEXUS_PUBLISH_USERNAME
     NEXUS_PUBLISH_PASSWORD
+    NEXUS_PUBLISH_URL
+    NEXUS_PUBLISH_SNAPSHOT_URL
     NEXUS_PUBLISH_STAGING_PROFILE_ID
 """
     }
@@ -111,20 +111,27 @@ The credentials and connection url must be specified as a project property or an
         extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.findProperty(SIGNING_PASSWORD) ?: System.getenv('SIGNING_PASSPHRASE'))
         extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.findProperty(SIGNING_KEYRING) ?: System.getenv('SIGNING_KEYRING'))
 
+
+        PublishType snapshotPublishType = gpe.snapshotPublishType
+        PublishType releasePublishType = gpe.releasePublishType
+
+        boolean isSnapshot = project.version.endsWith('SNAPSHOT')
+        boolean isRelease = !isSnapshot
+        boolean mavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
+        boolean nexusPublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
+
+        final PluginManager projectPluginManager = project.getPluginManager()
+        final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
+
+        // Required for the pom always
+        projectPluginManager.apply(MavenPublishPlugin)
+
+        if(nexusPublish) {
+            rootProjectPluginManager.apply(NexusPublishPlugin)
+            projectPluginManager.apply(SigningPlugin)
+        }
+
         project.afterEvaluate {
-            PublishType snapshotPublishType = gpe.snapshotPublishType
-            PublishType releasePublishType = gpe.releasePublishType
-
-            boolean isSnapshot = project.version.endsWith('SNAPSHOT')
-            boolean isRelease = !isSnapshot
-
-            boolean mavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
-            boolean sonatypePublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
-
-            final PluginManager projectPluginManager = project.getPluginManager()
-            final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
-            projectPluginManager.apply(MavenPublishPlugin)
-
             project.publishing {
                 if (mavenPublish) {
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
@@ -136,7 +143,7 @@ The credentials and connection url must be specified as a project property or an
                             }
 
                             if (!mavenPublishUrl) {
-                                throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`')
+                           //     throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`')
                             }
                             url = mavenPublishUrl
                         }
@@ -172,14 +179,14 @@ The credentials and connection url must be specified as a project property or an
                             if (gpe != null) {
                                 pomNode.children().last() + {
                                     def title = gpe.title ?: project.name
-                                    delegate.name = title
-                                    delegate.description = gpe.desc ?: title
+                                    delegate.name title
+                                    delegate.description gpe.desc ?: title
 
                                     def websiteUrl = gpe.websiteUrl ?: gpe.githubSlug ? "https://github.com/$gpe.githubSlug" : ''
                                     if (!websiteUrl) {
                                         throw new RuntimeException(getErrorMessage('websiteUrl'))
                                     }
-                                    delegate.url = websiteUrl
+                                    delegate.url websiteUrl
 
                                     def license = gpe.license
                                     if (license != null) {
@@ -187,17 +194,17 @@ The credentials and connection url must be specified as a project property or an
                                         if (concreteLicense != null) {
                                             delegate.licenses {
                                                 delegate.license {
-                                                    delegate.name = concreteLicense.name
-                                                    delegate.url = concreteLicense.url
-                                                    delegate.distribution = concreteLicense.distribution
+                                                    delegate.name concreteLicense.name
+                                                    delegate.url concreteLicense.url
+                                                    delegate.distribution concreteLicense.distribution
                                                 }
                                             }
                                         } else if (license.name && license.url) {
                                             delegate.licenses {
                                                 delegate.license {
-                                                    delegate.name = license.name
-                                                    delegate.url = license.url
-                                                    delegate.distribution = license.distribution
+                                                    delegate.name license.name
+                                                    delegate.url license.url
+                                                    delegate.distribution license.distribution
                                                 }
                                             }
                                         }
@@ -207,20 +214,20 @@ The credentials and connection url must be specified as a project property or an
 
                                     if (gpe.githubSlug) {
                                         delegate.scm {
-                                            delegate.url = "https://github.com/$gpe.githubSlug"
-                                            delegate.connection = "scm:git@github.com:${gpe.githubSlug}.git"
-                                            delegate.developerConnection = "scm:git@github.com:${gpe.githubSlug}.git"
+                                            delegate.url "https://github.com/$gpe.githubSlug"
+                                            delegate.connection "scm:git@github.com:${gpe.githubSlug}.git"
+                                            delegate.developerConnection "scm:git@github.com:${gpe.githubSlug}.git"
                                         }
                                         delegate.issueManagement {
-                                            delegate.system = 'Github Issues'
-                                            delegate.url = "https://github.com/$gpe.githubSlug/issues"
+                                            delegate.system 'Github Issues'
+                                            delegate.url "https://github.com/$gpe.githubSlug/issues"
                                         }
                                     } else {
                                         if (gpe.vcsUrl) {
                                             delegate.scm {
-                                                delegate.url = gpe.vcsUrl
-                                                delegate.connection = "scm:$gpe.vcsUrl"
-                                                delegate.developerConnection = "scm:$gpe.vcsUrl"
+                                                delegate.url gpe.vcsUrl
+                                                delegate.connection "scm:$gpe.vcsUrl"
+                                                delegate.developerConnection "scm:$gpe.vcsUrl"
                                             }
                                         } else {
                                             throw new RuntimeException(getErrorMessage('vcsUrl'))
@@ -228,8 +235,8 @@ The credentials and connection url must be specified as a project property or an
 
                                         if (gpe.issueTrackerUrl) {
                                             delegate.issueManagement {
-                                                delegate.system = 'Issue Tracker'
-                                                delegate.url = gpe.issueTrackerUrl
+                                                delegate.system 'Issue Tracker'
+                                                delegate.url gpe.issueTrackerUrl
                                             }
                                         } else {
                                             throw new RuntimeException(getErrorMessage('issueTrackerUrl'))
@@ -240,8 +247,8 @@ The credentials and connection url must be specified as a project property or an
                                         delegate.developers {
                                             for (entry in gpe.developers.entrySet()) {
                                                 delegate.developer {
-                                                    delegate.id = entry.key
-                                                    delegate.name = entry.value
+                                                    delegate.id entry.key
+                                                    delegate.name entry.value
                                                 }
                                             }
                                         }
@@ -266,10 +273,7 @@ The credentials and connection url must be specified as a project property or an
                 }
             }
 
-            if (sonatypePublish) {
-                rootProjectPluginManager.apply(NexusPublishPlugin)
-                projectPluginManager.apply(SigningPlugin)
-
+            if (nexusPublish) {
                 extensionContainer.configure(SigningExtension, {
                     it.required = isRelease
                     it.sign project.publishing.publications.maven
