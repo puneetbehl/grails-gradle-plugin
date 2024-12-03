@@ -1,6 +1,6 @@
 package org.grails.gradle.plugin.publishing
 
-enum RepositoryTarget {
+enum PublishType {
     MAVEN_PUBLISH,
     NEXUS_PUBLISH
 }

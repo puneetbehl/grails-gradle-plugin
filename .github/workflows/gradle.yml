@@ -13,8 +13,6 @@ jobs:
     strategy:
       matrix:
         java: ['17', '21']
-    env:
-      WORKSPACE: ${{ github.workspace }}
     steps:
       - name: "📥 Checkout repository"
         uses: actions/checkout@v4
@@ -86,7 +84,7 @@ jobs:
         env:
           DEVELOCITY_BUILD_CACHE_NODE_USER: ${{ secrets.GRADLE_ENTERPRISE_BUILD_CACHE_NODE_USER }}
           DEVELOCITY_BUILD_CACHE_NODE_KEY: ${{ secrets.GRADLE_ENTERPRISE_BUILD_CACHE_NODE_KEY }}
-        run: ./gradle groovydoc
+        run: ./gradlew groovydoc
       - name: "🚀 Publish to Github Pages"
         id: docs
         if: success()

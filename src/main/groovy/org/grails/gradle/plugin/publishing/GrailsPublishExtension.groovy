@@ -21,14 +21,20 @@ import org.gradle.util.ConfigureUtil
 
 /**
  * @author Puneet Behl
+ * @author James Daugherty
  * @since 4.0.11
  */
 @CompileStatic
 class GrailsPublishExtension {
     /**
-     * Determines the snapshot repository to publish to
+     * Determines which plugin is used to publish snapshots
      */
-    RepositoryTarget snapshotRepoType = RepositoryTarget.MAVEN_PUBLISH
+    PublishType snapshotPublishType = PublishType.MAVEN_PUBLISH
+
+    /**
+     * Determines which plugin is used to publish releases
+     */
+    PublishType releasePublishType = PublishType.NEXUS_PUBLISH
 
     /**
      * The slug from github

@@ -43,10 +43,7 @@ _Todo_: Add the docs
 
 grails-publish
 ---------
-A Gradle plugin to simplify publishing:
-
-1. snapshots with either the Maven Publish gradle plugin or Nexus Publish gradle plugin.
-2. releases with the Nexus Publish gradle plugin.
+A Gradle plugin to ease publishing with the maven publish plugin or the nexus publish plugin.
 
 Example Usage:
 
@@ -74,23 +71,23 @@ or
         developers = [johndoe: 'John Doe']
     }
 
-By default this plugin will publish to the specified `MAVEN_PUBLISH` instance for snapshots, and `NEXUS_PUBLISH` for releases.  To change the snapshot publish behavior, you can set the `snapshotRepoType` to `RepositoryTarget.NEXUS_PUBLISH`.
+By default this plugin will publish to the specified `MAVEN_PUBLISH` instance for snapshots, and `NEXUS_PUBLISH` for releases.  To change the snapshot publish behavior, set `snapshotRepoType` to `PublishType.NEXUS_PUBLISH`. To change the release publish behavior,  set `releaseRepoType` to `PublishType.NEXUS_PUBLISH`.
 
 The credentials and connection url must be specified as a project property or an environment variable.
 
-The `MAVEN_PUBLISH` Environment Variables are:
+`MAVEN_PUBLISH` Environment Variables are:
 
-    ARTIFACTORY_USERNAME
-    ARTIFACTORY_PASSWORD
-    ARTIFACTORY_URL
+    MAVEN_PUBLISH_USERNAME
+    MAVEN_PUBLISH_PASSWORD
+    MAVEN_PUBLISH_URL
 
-The `NEXUS_PUBLISH` Environment Variables are:
+`NEXUS_PUBLISH` Environment Variables are:
 
-    SONATYPE_NEXUS_URL
-    SONATYPE_SNAPSHOT_URL
-    SONATYPE_USERNAME
-    SONATYPE_PASSWORD
-    SONATYPE_STAGING_PROFILE_ID
+    NEXUS_PUBLISH_URL
+    NEXUS_PUBLISH_SNAPSHOT_URL
+    NEXUS_PUBLISH_USERNAME
+    NEXUS_PUBLISH_PASSWORD
+    NEXUS_PUBLISH_STAGING_PROFILE_ID
 
 grails-web
 ---------

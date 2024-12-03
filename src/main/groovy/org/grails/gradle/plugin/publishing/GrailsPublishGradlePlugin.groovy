@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//file:noinspection DuplicatedCode
 package org.grails.gradle.plugin.publishing
 
 import grails.util.GrailsNameUtils
@@ -40,6 +39,7 @@ import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEYRING
  * A plugin to ease publishing Grails related artifacts
  *
  * @author Graeme Rocher
+ * @author James Daugherty
  * @since 3.1
  */
 class GrailsPublishGradlePlugin implements Plugin<Project> {
@@ -48,7 +48,7 @@ class GrailsPublishGradlePlugin implements Plugin<Project> {
         return """No '$missingSetting' was specified. Please provide a valid publishing configuration. Example:
 
 grailsPublish {
-    websiteUrl = 'http://foo.com/myplugin'
+    websiteUrl = 'https://example.com/myplugin'
     license {
         name = 'Apache-2.0'
     }
@@ -71,20 +71,21 @@ grailsPublish {
     developers = [johndoe: 'John Doe']
 }
 
+By default snapshotPublishType is set to MAVEN_PUBLISH and releasePublishType is set to NEXUS_PUBLISH.
+
 The credentials and connection url must be specified as a project property or an environment variable:
 
 `MAVEN_PUBLISH` Environment Variables are:
-    ARTIFACTORY_USERNAME
-    ARTIFACTORY_PASSWORD
-    ARTIFACTORY_URL
+    MAVEN_PUBLISH_USERNAME
+    MAVEN_PUBLISH_PASSWORD
+    MAVEN_PUBLISH_URL
 
 `NEXUS_PUBLISH` Environment Variables are:
-    SONATYPE_NEXUS_URL
-    SONATYPE_SNAPSHOT_URL
-    SONATYPE_USERNAME
-    SONATYPE_PASSWORD
-    SONATYPE_STAGING_PROFILE_ID
-
+    NEXUS_PUBLISH_URL
+    NEXUS_PUBLISH_SNAPSHOT_URL
+    NEXUS_PUBLISH_USERNAME
+    NEXUS_PUBLISH_PASSWORD
+    NEXUS_PUBLISH_STAGING_PROFILE_ID
 """
     }
 
@@ -94,43 +95,50 @@ The credentials and connection url must be specified as a project property or an
         final TaskContainer taskContainer = project.tasks
         final GrailsPublishExtension gpe = extensionContainer.create('grailsPublish', GrailsPublishExtension)
 
-        final String artifactoryUsername = project.findProperty('artifactoryPublishUsername') ?: System.getenv('ARTIFACTORY_USERNAME') ?: ''
-        final String artifactoryPassword = project.findProperty('artifactoryPublishPassword') ?: System.getenv('ARTIFACTORY_PASSWORD') ?: ''
-        final String artifactoryPublishUrl = project.findProperty('artifactoryPublishUrl') ?: System.getenv('ARTIFACTORY_URL') ?: ''
-        final String sonatypeNexusUrl = project.findProperty('sonatypeNexusUrl') ?: System.getenv('SONATYPE_NEXUS_URL') ?: ''
-        final String sonatypeSnapshotUrl = project.findProperty('sonatypeSnapshotUrl') ?: System.getenv('SONATYPE_SNAPSHOT_URL') ?: ''
-        final String sonatypeUsername = project.findProperty('sonatypeUsername') ?: System.getenv('SONATYPE_USERNAME') ?: ''
-        final String sonatypePassword = project.findProperty('sonatypePassword') ?: System.getenv('SONATYPE_PASSWORD') ?: ''
-        final String sonatypeStagingProfileId = project.findProperty('sonatypeStagingProfileId') ?: System.getenv('SONATYPE_STAGING_PROFILE_ID') ?: ''
+        final String mavenPublishUsername = project.findProperty('mavenPublishUsername') ?: System.getenv('MAVEN_PUBLISH_USERNAME') ?: ''
+        final String mavenPublishPassword = project.findProperty('mavenPublishPassword') ?: System.getenv('MAVEN_PUBLISH_PASSWORD') ?: ''
+        final String mavenPublishUrl = project.findProperty('mavenPublishUrl') ?: System.getenv('MAVEN_PUBLISH_URL') ?: ''
+        
+        final String nexusPublishUrl = project.findProperty('nexusPublishUrl') ?: System.getenv('NEXUS_PUBLISH_URL') ?: ''
+        final String nexusPublishSnapshotUrl = project.findProperty('nexusPublishSnapshotUrl') ?: System.getenv('NEXUS_PUBLISH_SNAPSHOT_URL') ?: ''
+        final String nexusPublishUsername = project.findProperty('nexusPublishUsername') ?: System.getenv('NEXUS_PUBLISH_USERNAME') ?: ''
+        final String nexusPublishPassword = project.findProperty('nexusPublishPassword') ?: System.getenv('NEXUS_PUBLISH_PASSWORD') ?: ''
+        final String nexusPublishStagingProfileId = project.findProperty('nexusPublishStagingProfileId') ?: System.getenv('NEXUS_PUBLISH_STAGING_PROFILE_ID') ?: ''
 
         final ExtraPropertiesExtension extraPropertiesExtension = extensionContainer.findByType(ExtraPropertiesExtension)
 
-        extraPropertiesExtension.setProperty(SIGNING_KEY_ID, project.hasProperty(SIGNING_KEY_ID) ? project[SIGNING_KEY_ID] : System.getenv('SIGNING_KEY') ?: null)
-        extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.hasProperty(SIGNING_PASSWORD) ? project[SIGNING_PASSWORD] : System.getenv('SIGNING_PASSPHRASE') ?: null)
-        extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.hasProperty(SIGNING_KEYRING) ? project[SIGNING_KEYRING] : System.getenv('SIGNING_KEYRING') ?: null)
+        extraPropertiesExtension.setProperty(SIGNING_KEY_ID, project.findProperty(SIGNING_KEY_ID) ?: System.getenv('SIGNING_KEY'))
+        extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.findProperty(SIGNING_PASSWORD) ?: System.getenv('SIGNING_PASSPHRASE'))
+        extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.findProperty(SIGNING_KEYRING) ?: System.getenv('SIGNING_KEYRING'))
 
         project.afterEvaluate {
-            RepositoryTarget snapshotType = gpe.snapshotRepoType
+            PublishType snapshotPublishType = gpe.snapshotPublishType
+            PublishType releasePublishType = gpe.releasePublishType
+
             boolean isSnapshot = project.version.endsWith('SNAPSHOT')
             boolean isRelease = !isSnapshot
+
+            boolean mavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
+            boolean sonatypePublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
+
             final PluginManager projectPluginManager = project.getPluginManager()
             final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
             projectPluginManager.apply(MavenPublishPlugin)
 
             project.publishing {
-                if (isSnapshot && snapshotType == RepositoryTarget.MAVEN_PUBLISH) {
+                if (mavenPublish) {
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
                             credentials {
-                                username = artifactoryUsername
-                                password = artifactoryPassword
+                                username = mavenPublishUsername
+                                password = mavenPublishPassword
                             }
 
-                            if (!artifactoryPublishUrl) {
-                                throw new RuntimeException('Could not locate a project property of `artifactoryPublishUrl` or an environment variable of `ARTIFACTORY_URL` for the snapshot url')
+                            if (!mavenPublishUrl) {
+                                throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`')
                             }
-                            url = artifactoryPublishUrl
+                            url = mavenPublishUrl
                         }
                     }
                 }
@@ -164,36 +172,32 @@ The credentials and connection url must be specified as a project property or an
                             if (gpe != null) {
                                 pomNode.children().last() + {
                                     def title = gpe.title ?: project.name
-                                    delegate.name title
-                                    delegate.description gpe.desc ?: title
+                                    delegate.name = title
+                                    delegate.description = gpe.desc ?: title
 
                                     def websiteUrl = gpe.websiteUrl ?: gpe.githubSlug ? "https://github.com/$gpe.githubSlug" : ''
                                     if (!websiteUrl) {
                                         throw new RuntimeException(getErrorMessage('websiteUrl'))
                                     }
-
-                                    delegate.url websiteUrl
-
+                                    delegate.url = websiteUrl
 
                                     def license = gpe.license
                                     if (license != null) {
-
                                         def concreteLicense = GrailsPublishExtension.License.LICENSES.get(license.name)
                                         if (concreteLicense != null) {
-
                                             delegate.licenses {
                                                 delegate.license {
-                                                    delegate.name concreteLicense.name
-                                                    delegate.url concreteLicense.url
-                                                    delegate.distribution concreteLicense.distribution
+                                                    delegate.name = concreteLicense.name
+                                                    delegate.url = concreteLicense.url
+                                                    delegate.distribution = concreteLicense.distribution
                                                 }
                                             }
                                         } else if (license.name && license.url) {
                                             delegate.licenses {
                                                 delegate.license {
-                                                    delegate.name license.name
-                                                    delegate.url license.url
-                                                    delegate.distribution license.distribution
+                                                    delegate.name = license.name
+                                                    delegate.url = license.url
+                                                    delegate.distribution = license.distribution
                                                 }
                                             }
                                         }
@@ -203,20 +207,20 @@ The credentials and connection url must be specified as a project property or an
 
                                     if (gpe.githubSlug) {
                                         delegate.scm {
-                                            delegate.url "https://github.com/$gpe.githubSlug"
-                                            delegate.connection "scm:git@github.com:${gpe.githubSlug}.git"
-                                            delegate.developerConnection "scm:git@github.com:${gpe.githubSlug}.git"
+                                            delegate.url = "https://github.com/$gpe.githubSlug"
+                                            delegate.connection = "scm:git@github.com:${gpe.githubSlug}.git"
+                                            delegate.developerConnection = "scm:git@github.com:${gpe.githubSlug}.git"
                                         }
                                         delegate.issueManagement {
-                                            delegate.system "Github Issues"
-                                            delegate.url "https://github.com/$gpe.githubSlug/issues"
+                                            delegate.system = 'Github Issues'
+                                            delegate.url = "https://github.com/$gpe.githubSlug/issues"
                                         }
                                     } else {
                                         if (gpe.vcsUrl) {
                                             delegate.scm {
-                                                delegate.url gpe.vcsUrl
-                                                delegate.connection "scm:$gpe.vcsUrl"
-                                                delegate.developerConnection "scm:$gpe.vcsUrl"
+                                                delegate.url = gpe.vcsUrl
+                                                delegate.connection = "scm:$gpe.vcsUrl"
+                                                delegate.developerConnection = "scm:$gpe.vcsUrl"
                                             }
                                         } else {
                                             throw new RuntimeException(getErrorMessage('vcsUrl'))
@@ -224,21 +228,20 @@ The credentials and connection url must be specified as a project property or an
 
                                         if (gpe.issueTrackerUrl) {
                                             delegate.issueManagement {
-                                                delegate.system "Issue Tracker"
-                                                delegate.url gpe.issueTrackerUrl
+                                                delegate.system = 'Issue Tracker'
+                                                delegate.url = gpe.issueTrackerUrl
                                             }
                                         } else {
                                             throw new RuntimeException(getErrorMessage('issueTrackerUrl'))
                                         }
-
                                     }
 
                                     if (gpe.developers) {
                                         delegate.developers {
                                             for (entry in gpe.developers.entrySet()) {
                                                 delegate.developer {
-                                                    delegate.id entry.key
-                                                    delegate.name entry.value
+                                                    delegate.id = entry.key
+                                                    delegate.name = entry.value
                                                 }
                                             }
                                         }
@@ -263,7 +266,7 @@ The credentials and connection url must be specified as a project property or an
                 }
             }
 
-            if (isRelease || (isSnapshot && snapshotType == RepositoryTarget.NEXUS_PUBLISH)) {
+            if (sonatypePublish) {
                 rootProjectPluginManager.apply(NexusPublishPlugin)
                 projectPluginManager.apply(SigningPlugin)
 
@@ -283,34 +286,34 @@ The credentials and connection url must be specified as a project property or an
                 project.rootProject.nexusPublishing {
                     repositories {
                         sonatype {
-                            if (sonatypeNexusUrl) {
-                                nexusUrl = project.uri(sonatypeNexusUrl)
+                            if (nexusPublishUrl) {
+                                nexusUrl = project.uri(nexusPublishUrl)
                             }
-                            if (sonatypeSnapshotUrl) {
-                                snapshotRepositoryUrl = project.uri(sonatypeSnapshotUrl)
+                            if (nexusPublishSnapshotUrl) {
+                                snapshotRepositoryUrl = project.uri(nexusPublishSnapshotUrl)
                             }
-                            username = sonatypeUsername
-                            password = sonatypePassword
-                            stagingProfileId = sonatypeStagingProfileId
+                            username = nexusPublishUsername
+                            password = nexusPublishPassword
+                            stagingProfileId = nexusPublishStagingProfileId
                         }
                     }
                 }
             }
 
-            def installTask = taskContainer.findByName("install")
+            def installTask = taskContainer.findByName('install')
             def publishToSonatypeTask = taskContainer.findByName('publishToSonatype')
             def closeAndReleaseSonatypeStagingRepositoryTask = taskContainer.findByName('closeAndReleaseSonatypeStagingRepository')
-            def publishToMavenLocal = taskContainer.findByName("publishToMavenLocal")
+            def publishToMavenLocal = taskContainer.findByName('publishToMavenLocal')
             if (publishToSonatypeTask != null && taskContainer.findByName("publish${GrailsNameUtils.getClassName(defaultClassifier)}") == null) {
                 taskContainer.register("publish${GrailsNameUtils.getClassName(defaultClassifier)}", { Task task ->
                     task.dependsOn([publishToSonatypeTask, closeAndReleaseSonatypeStagingRepositoryTask])
-                    task.setGroup("publishing")
+                    task.setGroup('publishing')
                 })
             }
             if (installTask == null) {
-                taskContainer.register("install", { Task task ->
+                taskContainer.register('install', { Task task ->
                     task.dependsOn(publishToMavenLocal)
-                    task.setGroup("publishing")
+                    task.setGroup('publishing')
                 })
             }
         }
@@ -330,7 +333,7 @@ The credentials and connection url must be specified as a project property or an
     }
 
     protected String getDefaultClassifier() {
-        "plugin"
+        'plugin'
     }
 }
 
