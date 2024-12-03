@@ -1,11 +1,11 @@
 /*
- * Copyright 2015 original authors
+ * Copyright 2015-2024 original authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-//file:noinspection DuplicatedCode
-package org.grails.gradle.plugin.publishing.internal
+package org.grails.gradle.plugin.publishing
 
 import grails.util.GrailsNameUtils
+import io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository
 import io.github.gradlenexus.publishplugin.NexusPublishPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -27,7 +27,6 @@ import org.gradle.api.plugins.PluginManager
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.TaskContainer
-import org.gradle.api.tasks.bundling.Jar
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.plugins.signing.SigningPlugin
@@ -37,57 +36,56 @@ import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_PASSWORD
 import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEYRING
 
 /**
- * A plugin to setup publishing to Grails central repo
+ * A plugin to ease publishing Grails related artifacts
  *
  * @author Graeme Rocher
+ * @author James Daugherty
  * @since 3.1
  */
-class GrailsCentralPublishGradlePlugin implements Plugin<Project> {
+class GrailsPublishGradlePlugin implements Plugin<Project> {
 
     String getErrorMessage(String missingSetting) {
         return """No '$missingSetting' was specified. Please provide a valid publishing configuration. Example:
 
 grailsPublish {
-    user = 'user'
-    key = 'key'
-    userOrg = 'my-company' // optional, otherwise published to personal bintray account
-    repo = 'plugins' // optional, defaults to 'plugins'
-
-
-    websiteUrl = 'http://foo.com/myplugin'
+    websiteUrl = 'https://example.com/myplugin'
     license {
         name = 'Apache-2.0'
     }
-    issueTrackerUrl = 'http://github.com/myname/myplugin/issues'
-    vcsUrl = 'http://github.com/myname/myplugin'
-    title = "My plugin title"
-    desc = "My plugin description"
-    developers = [johndoe:"John Doe"]
+    issueTrackerUrl = 'https://github.com/myname/myplugin/issues'
+    vcsUrl = 'https://github.com/myname/myplugin'
+    title = 'My plugin title'
+    desc = 'My plugin description'
+    developers = [johndoe: 'John Doe']
 }
 
 or
 
 grailsPublish {
-    user = 'user'
-    key = 'key'
     githubSlug = 'foo/bar'
     license {
         name = 'Apache-2.0'
     }
-    title = "My plugin title"
-    desc = "My plugin description"
-    developers = [johndoe:"John Doe"]
+    title = 'My plugin title'
+    desc = 'My plugin description'
+    developers = [johndoe: 'John Doe']
 }
 
-Your publishing user and key can also be placed in PROJECT_HOME/gradle.properties or USER_HOME/gradle.properties. For example:
+By default snapshotPublishType is set to MAVEN_PUBLISH and releasePublishType is set to NEXUS_PUBLISH.
 
-bintrayUser=user
-bintrayKey=key
+The credentials and connection url must be specified as a project property or an environment variable:
 
-Or using environment variables:
+`MAVEN_PUBLISH` Environment Variables are:
+    MAVEN_PUBLISH_USERNAME
+    MAVEN_PUBLISH_PASSWORD
+    MAVEN_PUBLISH_URL
 
-BINTRAY_USER=user
-BINTRAY_KEY=key
+`NEXUS_PUBLISH` Environment Variables are:
+    NEXUS_PUBLISH_USERNAME
+    NEXUS_PUBLISH_PASSWORD
+    NEXUS_PUBLISH_URL
+    NEXUS_PUBLISH_SNAPSHOT_URL
+    NEXUS_PUBLISH_STAGING_PROFILE_ID
 """
     }
 
@@ -95,43 +93,59 @@ BINTRAY_KEY=key
     void apply(Project project) {
         final ExtensionContainer extensionContainer = project.extensions
         final TaskContainer taskContainer = project.tasks
-        final GrailsPublishExtension gpe = extensionContainer.create("grailsPublish", GrailsPublishExtension)
+        final GrailsPublishExtension gpe = extensionContainer.create('grailsPublish', GrailsPublishExtension)
 
-        final String artifactoryUsername = project.hasProperty("artifactoryPublishUsername") ? project.artifactoryPublishUsername : System.getenv("ARTIFACTORY_USERNAME") ?: ''
-        final String artifactoryPassword = project.hasProperty("artifactoryPublishPassword") ? project.artifactoryPublishPassword : System.getenv("ARTIFACTORY_PASSWORD") ?: ''
-        final String ossNexusUrl = project.hasProperty("sonatypeNexusUrl") ? project.sonatypeNexusUrl : System.getenv("SONATYPE_NEXUS_URL") ?: ''
-        final String ossSnapshotUrl = project.hasProperty("sonatypeSnapshotUrl") ? project.sonatypeSnapshotUrl : System.getenv("SONATYPE_SNAPSHOT_URL") ?: ''
-        final String ossUser = project.hasProperty("sonatypeOssUsername") ? project.sonatypeOssUsername : System.getenv("SONATYPE_USERNAME") ?: ''
-        final String ossPass = project.hasProperty("sonatypeOssPassword") ? project.sonatypeOssPassword : System.getenv("SONATYPE_PASSWORD") ?: ''
-        final String ossStagingProfileId = project.hasProperty("sonatypeOssStagingProfileId") ? project.sonatypeOssStagingProfileId : System.getenv("SONATYPE_STAGING_PROFILE_ID") ?: ''
+        final String mavenPublishUsername = project.findProperty('mavenPublishUsername') ?: System.getenv('MAVEN_PUBLISH_USERNAME') ?: ''
+        final String mavenPublishPassword = project.findProperty('mavenPublishPassword') ?: System.getenv('MAVEN_PUBLISH_PASSWORD') ?: ''
+        final String mavenPublishUrl = project.findProperty('mavenPublishUrl') ?: System.getenv('MAVEN_PUBLISH_URL') ?: ''
+        
+        final String nexusPublishUrl = project.findProperty('nexusPublishUrl') ?: System.getenv('NEXUS_PUBLISH_URL') ?: ''
+        final String nexusPublishSnapshotUrl = project.findProperty('nexusPublishSnapshotUrl') ?: System.getenv('NEXUS_PUBLISH_SNAPSHOT_URL') ?: ''
+        final String nexusPublishUsername = project.findProperty('nexusPublishUsername') ?: System.getenv('NEXUS_PUBLISH_USERNAME') ?: ''
+        final String nexusPublishPassword = project.findProperty('nexusPublishPassword') ?: System.getenv('NEXUS_PUBLISH_PASSWORD') ?: ''
+        final String nexusPublishStagingProfileId = project.findProperty('nexusPublishStagingProfileId') ?: System.getenv('NEXUS_PUBLISH_STAGING_PROFILE_ID') ?: ''
 
         final ExtraPropertiesExtension extraPropertiesExtension = extensionContainer.findByType(ExtraPropertiesExtension)
 
-        extraPropertiesExtension.setProperty(SIGNING_KEY_ID, project.hasProperty(SIGNING_KEY_ID) ? project[SIGNING_KEY_ID] : System.getenv("SIGNING_KEY") ?: null)
-        extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.hasProperty(SIGNING_PASSWORD) ? project[SIGNING_PASSWORD] : System.getenv("SIGNING_PASSPHRASE") ?: null)
-        extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.hasProperty(SIGNING_KEYRING) ? project[SIGNING_KEYRING] : System.getenv("SIGNING_KEYRING") ?: null)
+        extraPropertiesExtension.setProperty(SIGNING_KEY_ID, project.findProperty(SIGNING_KEY_ID) ?: System.getenv('SIGNING_KEY'))
+        extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.findProperty(SIGNING_PASSWORD) ?: System.getenv('SIGNING_PASSPHRASE'))
+        extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.findProperty(SIGNING_KEYRING) ?: System.getenv('SIGNING_KEYRING'))
 
+
+        PublishType snapshotPublishType = gpe.snapshotPublishType
+        PublishType releasePublishType = gpe.releasePublishType
+
+        boolean isSnapshot = project.version.endsWith('SNAPSHOT')
+        boolean isRelease = !isSnapshot
+        boolean mavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
+        boolean nexusPublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
+
+        final PluginManager projectPluginManager = project.getPluginManager()
+        final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
+
+        // Required for the pom always
+        projectPluginManager.apply(MavenPublishPlugin)
+
+        if (nexusPublish) {
+            rootProjectPluginManager.apply(NexusPublishPlugin)
+            projectPluginManager.apply(SigningPlugin)
+        }
 
         project.afterEvaluate {
-            boolean isSnapshot = project.version.endsWith("SNAPSHOT")
-            boolean isRelease = !isSnapshot
-            final PluginManager pluginManager = project.getPluginManager()
-            pluginManager.apply(MavenPublishPlugin.class)
-
-            // Remove "plain" archive classifier, unless bootJar or bootWar are enabled
-            if (!taskContainer.findByName("bootJar")?.enabled && !taskContainer.findByName("bootWar")?.enabled) {
-                (taskContainer.findByName("jar") as Jar).archiveClassifier.set("")
-            }
-
             project.publishing {
-                if (isSnapshot) {
+                if (mavenPublish) {
+                    System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
                             credentials {
-                                username = artifactoryUsername
-                                password = artifactoryPassword
+                                username = mavenPublishUsername
+                                password = mavenPublishPassword
                             }
-                            url gpe.snapshotUrl? gpe.snapshotUrl : getDefaultGrailsCentralSnapshotRepo()
+
+                            if (!mavenPublishUrl) {
+                           //     throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`')
+                            }
+                            url = mavenPublishUrl
                         }
                     }
                 }
@@ -141,11 +155,11 @@ BINTRAY_KEY=key
                         artifactId project.name
 
                         doAddArtefact(project, delegate)
-                        def sourcesJar = taskContainer.findByName("sourcesJar")
+                        def sourcesJar = taskContainer.findByName('sourcesJar')
                         if (sourcesJar != null) {
                             artifact sourcesJar
                         }
-                        def javadocJar = taskContainer.findByName("javadocJar")
+                        def javadocJar = taskContainer.findByName('javadocJar')
                         if (javadocJar != null) {
                             artifact javadocJar
                         }
@@ -157,6 +171,7 @@ BINTRAY_KEY=key
                         pom.withXml {
                             Node pomNode = asNode()
 
+                            // Prevent multiple dependencyManagement nodes
                             if (pomNode.dependencyManagement) {
                                 pomNode.dependencyManagement[0].replaceNode {}
                             }
@@ -171,16 +186,12 @@ BINTRAY_KEY=key
                                     if (!websiteUrl) {
                                         throw new RuntimeException(getErrorMessage('websiteUrl'))
                                     }
-
                                     delegate.url websiteUrl
-
 
                                     def license = gpe.license
                                     if (license != null) {
-
                                         def concreteLicense = GrailsPublishExtension.License.LICENSES.get(license.name)
                                         if (concreteLicense != null) {
-
                                             delegate.licenses {
                                                 delegate.license {
                                                     delegate.name concreteLicense.name
@@ -208,7 +219,7 @@ BINTRAY_KEY=key
                                             delegate.developerConnection "scm:git@github.com:${gpe.githubSlug}.git"
                                         }
                                         delegate.issueManagement {
-                                            delegate.system "Github Issues"
+                                            delegate.system 'Github Issues'
                                             delegate.url "https://github.com/$gpe.githubSlug/issues"
                                         }
                                     } else {
@@ -224,17 +235,15 @@ BINTRAY_KEY=key
 
                                         if (gpe.issueTrackerUrl) {
                                             delegate.issueManagement {
-                                                delegate.system "Issue Tracker"
+                                                delegate.system 'Issue Tracker'
                                                 delegate.url gpe.issueTrackerUrl
                                             }
                                         } else {
                                             throw new RuntimeException(getErrorMessage('issueTrackerUrl'))
                                         }
-
                                     }
 
                                     if (gpe.developers) {
-
                                         delegate.developers {
                                             for (entry in gpe.developers.entrySet()) {
                                                 delegate.developer {
@@ -264,56 +273,51 @@ BINTRAY_KEY=key
                 }
             }
 
-            if (isRelease) {
-                pluginManager.apply(NexusPublishPlugin.class)
-                pluginManager.apply(SigningPlugin.class)
-
+            if (nexusPublish) {
                 extensionContainer.configure(SigningExtension, {
                     it.required = isRelease
                     it.sign project.publishing.publications.maven
                 })
 
-                project.tasks.withType(io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository).configureEach {
-                    shouldRunAfter(project.tasks.withType(Sign))
+                project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
+                    task.shouldRunAfter = project.tasks.withType(Sign)
                 }
 
                 project.tasks.withType(Sign) {
                     onlyIf { isRelease }
                 }
-            }
 
-            if (isRelease) {
-                project.nexusPublishing {
+                project.rootProject.nexusPublishing {
                     repositories {
                         sonatype {
-                            if (ossNexusUrl) {
-                                nexusUrl = project.uri(ossNexusUrl)
+                            if (nexusPublishUrl) {
+                                nexusUrl = project.uri(nexusPublishUrl)
                             }
-                            if (ossSnapshotUrl) {
-                                snapshotRepositoryUrl = project.uri(ossSnapshotUrl)
+                            if (nexusPublishSnapshotUrl) {
+                                snapshotRepositoryUrl = project.uri(nexusPublishSnapshotUrl)
                             }
-                            username = ossUser
-                            password = ossPass
-                            stagingProfileId = ossStagingProfileId
+                            username = nexusPublishUsername
+                            password = nexusPublishPassword
+                            stagingProfileId = nexusPublishStagingProfileId
                         }
                     }
                 }
             }
 
-            def installTask = taskContainer.findByName("install")
+            def installTask = taskContainer.findByName('install')
             def publishToSonatypeTask = taskContainer.findByName('publishToSonatype')
             def closeAndReleaseSonatypeStagingRepositoryTask = taskContainer.findByName('closeAndReleaseSonatypeStagingRepository')
-            def publishToMavenLocal = taskContainer.findByName("publishToMavenLocal")
+            def publishToMavenLocal = taskContainer.findByName('publishToMavenLocal')
             if (publishToSonatypeTask != null && taskContainer.findByName("publish${GrailsNameUtils.getClassName(defaultClassifier)}") == null) {
                 taskContainer.register("publish${GrailsNameUtils.getClassName(defaultClassifier)}", { Task task ->
                     task.dependsOn([publishToSonatypeTask, closeAndReleaseSonatypeStagingRepositoryTask])
-                    task.setGroup("publishing")
+                    task.setGroup('publishing')
                 })
             }
             if (installTask == null) {
-                taskContainer.register("install", { Task task ->
+                taskContainer.register('install', { Task task ->
                     task.dependsOn(publishToMavenLocal)
-                    task.setGroup("publishing")
+                    task.setGroup('publishing')
                 })
             }
         }
@@ -321,18 +325,6 @@ BINTRAY_KEY=key
 
     protected void doAddArtefact(Project project, MavenPublication publication) {
         publication.from project.components.java
-    }
-
-    protected String getDefaultArtifactType() {
-        "grails-$defaultClassifier"
-    }
-
-    protected String getDefaultGrailsCentralReleaseRepo() {
-        "https://repo.grails.org/grails/plugins3-releases-local"
-    }
-
-    protected String getDefaultGrailsCentralSnapshotRepo() {
-        "https://repo.grails.org/grails/plugins3-snapshots-local"
     }
 
     protected Map<String, String> getDefaultExtraArtifact(Project project) {
@@ -345,15 +337,7 @@ BINTRAY_KEY=key
     }
 
     protected String getDefaultClassifier() {
-        "plugin"
-    }
-
-    protected String getDefaultDescription(Project project) {
-        "Grails ${project.name} $defaultClassifier"
-    }
-
-    protected String getDefaultRepo() {
-        "plugins"
+        'plugin'
     }
 }
 

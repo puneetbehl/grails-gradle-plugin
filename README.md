@@ -25,10 +25,6 @@ grails-gsp
 ---------
 * Configure GSP Compiling Task
 
-grails-plugin-publish
----------
-_Todo_: Add the docs
-
 grails-plugin
 ---------
 * Configure Ast Sources
@@ -40,6 +36,58 @@ grails-plugin
 grails-profile
 ---------
 _Todo_: Add the docs
+
+grails-profile-publish
+---------
+_Todo_: Add the docs
+
+grails-publish
+---------
+A Gradle plugin to ease publishing with the maven publish plugin or the nexus publish plugin.
+
+Example Usage:
+
+    grailsPublish {
+        websiteUrl = 'http://foo.com/myplugin'
+        license {
+            name = 'Apache-2.0'
+        }
+        issueTrackerUrl = 'https://github.com/myname/myplugin/issues'
+        vcsUrl = 'https://github.com/myname/myplugin'
+        title = 'My plugin title'
+        desc = 'My plugin description'
+        developers = [johndoe: 'John Doe']
+    }
+
+or
+
+    grailsPublish {
+        githubSlug = 'foo/bar'
+        license {
+            name = 'Apache-2.0'
+        }
+        title = 'My plugin title'
+        desc = 'My plugin description'
+        developers = [johndoe: 'John Doe']
+    }
+
+By default, this plugin will publish to the specified `MAVEN_PUBLISH` instance for snapshots, and `NEXUS_PUBLISH` for releases.  To change the snapshot publish behavior, set `snapshotRepoType` to `PublishType.NEXUS_PUBLISH`. To change the release publish behavior, set `releaseRepoType` to `PublishType.MAVEN_PUBLISH`.
+
+The credentials and connection url must be specified as a project property or an environment variable.
+
+`MAVEN_PUBLISH` Environment Variables are:
+
+    MAVEN_PUBLISH_USERNAME
+    MAVEN_PUBLISH_PASSWORD
+    MAVEN_PUBLISH_URL
+
+`NEXUS_PUBLISH` Environment Variables are:
+
+    NEXUS_PUBLISH_USERNAME
+    NEXUS_PUBLISH_PASSWORD
+    NEXUS_PUBLISH_URL
+    NEXUS_PUBLISH_SNAPSHOT_URL
+    NEXUS_PUBLISH_STAGING_PROFILE_ID
 
 grails-web
 ---------
