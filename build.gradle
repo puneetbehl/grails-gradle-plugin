@@ -139,7 +139,7 @@ gradlePlugin {
         grailsPluginPublish {
             displayName = "Grails Publish Gradle Plugin"
             description = 'A plugin to assist in publishing Grails related artifacts'
-            id = 'org.grails.grails-plugin-publish'
+            id = 'org.grails.grails-publish'
             implementationClass = 'org.grails.gradle.plugin.publishing.GrailsPublishGradlePlugin'
         }
         grailsProfilePublish {
