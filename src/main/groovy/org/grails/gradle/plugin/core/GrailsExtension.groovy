@@ -18,7 +18,6 @@ package org.grails.gradle.plugin.core
 import groovy.transform.CompileStatic
 import org.apache.tools.ant.taskdefs.condition.Os
 import org.gradle.api.Project
-import org.gradle.util.ConfigureUtil
 
 /**
  * A extension to the Gradle plugin to configure Grails settings
@@ -72,15 +71,20 @@ class GrailsExtension {
      * Configure the reloading agent
      */
     Agent agent(@DelegatesTo(Agent) Closure configurer) {
-        ConfigureUtil.configure(configurer, agent)
+        configurer.delegate = agent
+        configurer.resolveStrategy = Closure.DELEGATE_FIRST
+        configurer.call()
+        return agent
     }
 
     /**
      * Allows defining plugins in the available scopes
      */
     void plugins(Closure pluginDefinitions) {
-        def definer = new PluginDefiner(project,exploded)
-        ConfigureUtil.configureSelf(pluginDefinitions, definer)
+        PluginDefiner definer = new PluginDefiner(project, exploded)
+        pluginDefinitions.delegate = definer
+        pluginDefinitions.resolveStrategy = Closure.DELEGATE_FIRST
+        pluginDefinitions.call()
     }
     /**
      * Configuration for the reloading agent
