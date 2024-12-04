@@ -17,7 +17,6 @@
 package org.grails.gradle.plugin.publishing.internal
 
 import groovy.transform.CompileStatic
-import org.gradle.util.ConfigureUtil
 
 /**
  * @author Puneet Behl
@@ -124,7 +123,10 @@ class GrailsPublishExtension {
      * @return the license instance
      */
     License license(@DelegatesTo(License) Closure configurer) {
-        ConfigureUtil.configure(configurer, license)
+        configurer.delegate = license
+        configurer.resolveStrategy = Closure.DELEGATE_FIRST
+        configurer.call()
+        return license
     }
 
     void setLicense(License license) {
