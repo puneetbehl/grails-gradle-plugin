@@ -74,6 +74,11 @@ class GrailsPublishExtension {
      */
     String issueTrackerUrl
 
+    /**
+     * Overrides the groupId of the published artifact
+     */
+    String groupId
+
     License getLicense() {
         return license
     }

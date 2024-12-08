@@ -153,6 +153,7 @@ The credentials and connection url must be specified as a project property or an
                 publications {
                     maven(MavenPublication) {
                         artifactId project.name
+                        groupId gpe.groupId ?: project.group
 
                         doAddArtefact(project, delegate)
                         def sourcesJar = taskContainer.findByName('sourcesJar')
