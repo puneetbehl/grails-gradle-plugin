@@ -33,6 +33,7 @@ import org.gradle.api.tasks.TaskContainer
 import org.gradle.api.tasks.TaskDependency
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.compile.GroovyCompile
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.language.jvm.tasks.ProcessResources
 import org.gradle.tooling.provider.model.ToolingModelBuilderRegistry
 import org.grails.gradle.plugin.util.SourceSets
@@ -194,6 +195,9 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
             it.enabled = true
             it.archiveClassifier.set('') // Remove '-plain' suffix from jar file name
             it.exclude('application.yml', 'application.groovy', 'logback.groovy', 'logback.xml')
+        }
+        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
+            it.dependsOn(JavaPlugin.JAR_TASK_NAME) // assemble task should produce the jar artifact
         }
     }
 
