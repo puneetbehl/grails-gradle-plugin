@@ -188,16 +188,16 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
     }
 
     protected void configurePluginJarTask(Project project) {
-        project.tasks.named(SpringBootPlugin.BOOT_JAR_TASK_NAME) {
-            it.enabled = false // Grails Plugins should not produce a bootJar
+        project.tasks.named(SpringBootPlugin.BOOT_JAR_TASK_NAME) { Task bootJarTask ->
+            bootJarTask.enabled = false // Grails Plugins should not produce a bootJar
         }
-        project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar) {
-            it.enabled = true
-            it.archiveClassifier.set('') // Remove '-plain' suffix from jar file name
-            it.exclude('application.yml', 'application.groovy', 'logback.groovy', 'logback.xml')
+        project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar) { Jar jarTask ->
+            jarTask.enabled = true
+            jarTask.archiveClassifier.set('') // Remove '-plain' suffix from jar file name
+            jarTask.exclude('application.yml', 'application.groovy', 'logback.groovy', 'logback.xml')
         }
-        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
-            it.dependsOn(JavaPlugin.JAR_TASK_NAME) // assemble task should produce the jar artifact
+        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { Task assembleTask ->
+            assembleTask.dependsOn(JavaPlugin.JAR_TASK_NAME) // assemble task should produce the jar artifact
         }
     }
 
