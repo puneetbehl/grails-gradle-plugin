@@ -129,6 +129,30 @@ The credentials and connection url must be specified as a project property or an
         if (nexusPublish) {
             rootProjectPluginManager.apply(NexusPublishPlugin)
             projectPluginManager.apply(SigningPlugin)
+
+            project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
+                task.shouldRunAfter = project.tasks.withType(Sign)
+            }
+
+            project.tasks.withType(Sign) {
+                onlyIf { isRelease }
+            }
+
+            project.rootProject.nexusPublishing {
+                repositories {
+                    sonatype {
+                        if (nexusPublishUrl) {
+                            nexusUrl = project.uri(nexusPublishUrl)
+                        }
+                        if (nexusPublishSnapshotUrl) {
+                            snapshotRepositoryUrl = project.uri(nexusPublishSnapshotUrl)
+                        }
+                        username = nexusPublishUsername
+                        password = nexusPublishPassword
+                        stagingProfileId = nexusPublishStagingProfileId
+                    }
+                }
+            }
         }
 
         project.afterEvaluate {
@@ -272,36 +296,12 @@ The credentials and connection url must be specified as a project property or an
                         }
                     }
                 }
-            }
 
-            if (nexusPublish) {
-                extensionContainer.configure(SigningExtension, {
-                    it.required = isRelease
-                    it.sign project.publishing.publications.maven
-                })
-
-                project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
-                    task.shouldRunAfter = project.tasks.withType(Sign)
-                }
-
-                project.tasks.withType(Sign) {
-                    onlyIf { isRelease }
-                }
-
-                project.rootProject.nexusPublishing {
-                    repositories {
-                        sonatype {
-                            if (nexusPublishUrl) {
-                                nexusUrl = project.uri(nexusPublishUrl)
-                            }
-                            if (nexusPublishSnapshotUrl) {
-                                snapshotRepositoryUrl = project.uri(nexusPublishSnapshotUrl)
-                            }
-                            username = nexusPublishUsername
-                            password = nexusPublishPassword
-                            stagingProfileId = nexusPublishStagingProfileId
-                        }
-                    }
+                if(nexusPublish && isRelease) {
+                    extensionContainer.configure(SigningExtension, {
+                        it.required = isRelease
+                        it.sign project.publishing.publications.maven
+                    })
                 }
             }
 
