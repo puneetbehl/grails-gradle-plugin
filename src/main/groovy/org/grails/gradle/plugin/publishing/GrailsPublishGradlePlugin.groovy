@@ -204,7 +204,8 @@ Note: if project properties are used, the properties must be defined prior to ap
                             }
 
                             if (!mavenPublishUrl) {
-                                throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
+                                // TODO: Need to only apply this when trying to publish
+                                // throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
                             }
 
                             url = mavenPublishUrl
