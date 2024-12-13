@@ -44,6 +44,8 @@ import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEYRING
  */
 class GrailsPublishGradlePlugin implements Plugin<Project> {
 
+    public static String NEXUS_PUBLISH_PLUGIN_ID = 'io.github.gradle-nexus.publish-plugin'
+
     String getErrorMessage(String missingSetting) {
         return """No '$missingSetting' was specified. Please provide a valid publishing configuration. Example:
 
@@ -86,19 +88,26 @@ The credentials and connection url must be specified as a project property or an
     NEXUS_PUBLISH_URL
     NEXUS_PUBLISH_SNAPSHOT_URL
     NEXUS_PUBLISH_STAGING_PROFILE_ID
+
+When using `NEXUS_PUBLISH`, the property `signing.secretKeyRingFile` must be set to the path of the GPG keyring file.
+
+Note: if project properties are used, the properties must be defined prior to applying this plugin.
 """
     }
 
     @Override
     void apply(Project project) {
+        project.rootProject.logger.lifecycle("Applying Grails Publish Gradle Plugin for `${project.name}`...");
+
         final ExtensionContainer extensionContainer = project.extensions
         final TaskContainer taskContainer = project.tasks
         final GrailsPublishExtension gpe = extensionContainer.create('grailsPublish', GrailsPublishExtension)
 
         final String mavenPublishUsername = project.findProperty('mavenPublishUsername') ?: System.getenv('MAVEN_PUBLISH_USERNAME') ?: ''
         final String mavenPublishPassword = project.findProperty('mavenPublishPassword') ?: System.getenv('MAVEN_PUBLISH_PASSWORD') ?: ''
-        final String mavenPublishUrl = project.findProperty('mavenPublishUrl') ?: System.getenv('MAVEN_PUBLISH_URL') ?: ''
-        
+        // the maven publish url can technically be a directory so do not force to String type
+        final def mavenPublishUrl = project.findProperty('mavenPublishUrl') ?: System.getenv('MAVEN_PUBLISH_URL') ?: ''
+
         final String nexusPublishUrl = project.findProperty('nexusPublishUrl') ?: System.getenv('NEXUS_PUBLISH_URL') ?: ''
         final String nexusPublishSnapshotUrl = project.findProperty('nexusPublishSnapshotUrl') ?: System.getenv('NEXUS_PUBLISH_SNAPSHOT_URL') ?: ''
         final String nexusPublishUsername = project.findProperty('nexusPublishUsername') ?: System.getenv('NEXUS_PUBLISH_USERNAME') ?: ''
@@ -111,23 +120,49 @@ The credentials and connection url must be specified as a project property or an
         extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.findProperty(SIGNING_PASSWORD) ?: System.getenv('SIGNING_PASSPHRASE'))
         extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.findProperty(SIGNING_KEYRING) ?: System.getenv('SIGNING_KEYRING'))
 
-
         PublishType snapshotPublishType = gpe.snapshotPublishType
         PublishType releasePublishType = gpe.releasePublishType
 
-        boolean isSnapshot = project.version.endsWith('SNAPSHOT')
-        boolean isRelease = !isSnapshot
-        boolean mavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
-        boolean nexusPublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
+        String detectedVersion = (project.version == Project.DEFAULT_VERSION ? (project.findProperty('projectVersion') ?: Project.DEFAULT_VERSION) : project.version) as String
+        if (detectedVersion == Project.DEFAULT_VERSION) {
+            throw new IllegalStateException("Project `${project.name}` has an unspecified version (neither `version` or the property `projectVersion` is defined). Release state cannot be determined.")
+        }
+        project.rootProject.logger.info("Version $detectedVersion detected for project ${project.name}")
 
-        final PluginManager projectPluginManager = project.getPluginManager()
-        final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
+        boolean isSnapshot = detectedVersion.endsWith('SNAPSHOT')
+        if (isSnapshot) {
+            project.rootProject.logger.info("Snapshot version detected for project ${project.name}")
+        }
+        boolean isRelease = !isSnapshot
+        if (isRelease) {
+            project.rootProject.logger.info("Release detected for Project `${project.name}`")
+        }
+
+        boolean useMavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
+        if (useMavenPublish) {
+            project.rootProject.logger.info("Maven Publish is enabled for project ${project.name}")
+        }
+        boolean useNexusPublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
+        if (useNexusPublish) {
+            project.rootProject.logger.info("Nexus Publish is enabled for project ${project.name}")
+        }
 
         // Required for the pom always
+        final PluginManager projectPluginManager = project.pluginManager
         projectPluginManager.apply(MavenPublishPlugin)
 
-        if (nexusPublish) {
-            rootProjectPluginManager.apply(NexusPublishPlugin)
+        if (useNexusPublish) {
+            // The nexus plugin is special since it must always be applied to the root project.
+            // Handle when multiple subprojects exist and grailsPublish is defined in each one instead of at the root.
+            final PluginManager rootProjectPluginManager = project.rootProject.pluginManager
+            boolean hasNexusPublishApplied = rootProjectPluginManager.hasPlugin(NEXUS_PUBLISH_PLUGIN_ID)
+            if (hasNexusPublishApplied) {
+                project.rootProject.logger.info("Nexus Publish Plugin already applied to root project")
+            }
+            else {
+                rootProjectPluginManager.apply(NexusPublishPlugin)
+            }
+
             projectPluginManager.apply(SigningPlugin)
 
             project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
@@ -138,18 +173,20 @@ The credentials and connection url must be specified as a project property or an
                 onlyIf { isRelease }
             }
 
-            project.rootProject.nexusPublishing {
-                repositories {
-                    sonatype {
-                        if (nexusPublishUrl) {
-                            nexusUrl = project.uri(nexusPublishUrl)
+            if (!hasNexusPublishApplied) {
+                project.rootProject.nexusPublishing {
+                    repositories {
+                        sonatype {
+                            if (nexusPublishUrl) {
+                                nexusUrl = project.uri(nexusPublishUrl)
+                            }
+                            if (nexusPublishSnapshotUrl) {
+                                snapshotRepositoryUrl = project.uri(nexusPublishSnapshotUrl)
+                            }
+                            username = nexusPublishUsername
+                            password = nexusPublishPassword
+                            stagingProfileId = nexusPublishStagingProfileId
                         }
-                        if (nexusPublishSnapshotUrl) {
-                            snapshotRepositoryUrl = project.uri(nexusPublishSnapshotUrl)
-                        }
-                        username = nexusPublishUsername
-                        password = nexusPublishPassword
-                        stagingProfileId = nexusPublishStagingProfileId
                     }
                 }
             }
@@ -157,7 +194,7 @@ The credentials and connection url must be specified as a project property or an
 
         project.afterEvaluate {
             project.publishing {
-                if (mavenPublish) {
+                if (useMavenPublish) {
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
@@ -167,8 +204,9 @@ The credentials and connection url must be specified as a project property or an
                             }
 
                             if (!mavenPublishUrl) {
-                           //     throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`')
+                                throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
                             }
+
                             url = mavenPublishUrl
                         }
                     }
@@ -296,13 +334,13 @@ The credentials and connection url must be specified as a project property or an
                         }
                     }
                 }
+            }
 
-                if(nexusPublish && isRelease) {
-                    extensionContainer.configure(SigningExtension, {
-                        it.required = isRelease
-                        it.sign project.publishing.publications.maven
-                    })
-                }
+            if (useNexusPublish) {
+                extensionContainer.configure(SigningExtension, {
+                    it.required = isRelease
+                    it.sign project.publishing.publications.maven
+                })
             }
 
             def installTask = taskContainer.findByName('install')
@@ -330,10 +368,10 @@ The credentials and connection url must be specified as a project property or an
 
     protected Map<String, String> getDefaultExtraArtifact(Project project) {
         String pluginXml = "${project.sourceSets.main.groovy.getClassesDirectory().get().getAsFile()}/META-INF/grails-plugin.xml".toString()
-        new File(pluginXml).exists()? [
-            source    : pluginXml,
-            classifier: getDefaultClassifier(),
-            extension : 'xml'
+        new File(pluginXml).exists() ? [
+                source    : pluginXml,
+                classifier: getDefaultClassifier(),
+                extension : 'xml'
         ] : null
     }
 
