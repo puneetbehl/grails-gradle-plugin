@@ -91,6 +91,8 @@ The credentials and connection url must be specified as a project property or an
 
     @Override
     void apply(Project project) {
+        project.rootProject.getLogger().lifecycle("Applying Grails Publish Gradle Plugin for `${project.name}`...");
+
         final ExtensionContainer extensionContainer = project.extensions
         final TaskContainer taskContainer = project.tasks
         final GrailsPublishExtension gpe = extensionContainer.create('grailsPublish', GrailsPublishExtension)
@@ -111,14 +113,31 @@ The credentials and connection url must be specified as a project property or an
         extraPropertiesExtension.setProperty(SIGNING_PASSWORD, project.findProperty(SIGNING_PASSWORD) ?: System.getenv('SIGNING_PASSPHRASE'))
         extraPropertiesExtension.setProperty(SIGNING_KEYRING, project.findProperty(SIGNING_KEYRING) ?: System.getenv('SIGNING_KEYRING'))
 
-
         PublishType snapshotPublishType = gpe.snapshotPublishType
         PublishType releasePublishType = gpe.releasePublishType
 
-        boolean isSnapshot = project.version.endsWith('SNAPSHOT')
+        String detectedVersion = (project.version == Project.DEFAULT_VERSION ? (project.hasProperty('projectVersion') ? project.findProperty('projectVersion') : null) : project.version) as String
+        if(detectedVersion == Project.DEFAULT_VERSION) {
+            throw new IllegalStateException("Project `${project.name}` has an unspecified version (neither version or property projectVersion is defined) so release publishing cannot be determined.")
+        }
+
+        boolean isSnapshot = detectedVersion.endsWith('SNAPSHOT')
+        if(isSnapshot) {
+            project.rootProject.getLogger().info("Snapshot detected for `${project.name}`:${detectedVersion}")
+        }
         boolean isRelease = !isSnapshot
+        if(isRelease) {
+            project.rootProject.getLogger().info("Release detected for `${project.name}`:${detectedVersion}")
+        }
+
         boolean mavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
+        if(mavenPublish) {
+            project.rootProject.getLogger().info("Maven Publish is enabled for `${project.name}` with version ${detectedVersion}")
+        }
         boolean nexusPublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
+        if(nexusPublish) {
+            project.rootProject.getLogger().info("Nexus Publish is enabled for `${project.name}` with version ${detectedVersion}")
+        }
 
         final PluginManager projectPluginManager = project.getPluginManager()
         final PluginManager rootProjectPluginManager = project.rootProject.getPluginManager()
@@ -296,13 +315,13 @@ The credentials and connection url must be specified as a project property or an
                         }
                     }
                 }
+            }
 
-                if(nexusPublish && isRelease) {
-                    extensionContainer.configure(SigningExtension, {
-                        it.required = isRelease
-                        it.sign project.publishing.publications.maven
-                    })
-                }
+            if(nexusPublish) {
+                extensionContainer.configure(SigningExtension, {
+                    it.required = isRelease
+                    it.sign project.publishing.publications.maven
+                })
             }
 
             def installTask = taskContainer.findByName('install')
