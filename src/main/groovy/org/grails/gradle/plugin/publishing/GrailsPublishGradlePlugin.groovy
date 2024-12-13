@@ -127,11 +127,11 @@ Note: if project properties are used, the properties must be defined prior to ap
         if (detectedVersion == Project.DEFAULT_VERSION) {
             throw new IllegalStateException("Project `${project.name}` has an unspecified version (neither `version` or the property `projectVersion` is defined). Release state cannot be determined.")
         }
-        project.rootProject.logger.info("Detected Version $detectedVersion for Project `${project.name}`")
+        project.rootProject.logger.info("Version $detectedVersion detected for project ${project.name}")
 
         boolean isSnapshot = detectedVersion.endsWith('SNAPSHOT')
         if (isSnapshot) {
-            project.rootProject.logger.info("Snapshot detected for Project `${project.name}`")
+            project.rootProject.logger.info("Snapshot version detected for project ${project.name}")
         }
         boolean isRelease = !isSnapshot
         if (isRelease) {
@@ -140,11 +140,11 @@ Note: if project properties are used, the properties must be defined prior to ap
 
         boolean useMavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
         if (useMavenPublish) {
-            project.rootProject.logger.info("Maven Publish is enabled for Project `${project.name}`")
+            project.rootProject.logger.info("Maven Publish is enabled for project ${project.name}")
         }
         boolean useNexusPublish = (isSnapshot && snapshotPublishType == PublishType.NEXUS_PUBLISH) || (isRelease && releasePublishType == PublishType.NEXUS_PUBLISH)
         if (useNexusPublish) {
-            project.rootProject.logger.info("Nexus Publish is enabled for Project `${project.name}`")
+            project.rootProject.logger.info("Nexus Publish is enabled for project ${project.name}")
         }
 
         // Required for the pom always
@@ -159,8 +159,10 @@ Note: if project properties are used, the properties must be defined prior to ap
             if (hasNexusPublishApplied) {
                 project.rootProject.logger.info("Nexus Publish Plugin already applied to root project")
             }
+            else {
+                rootProjectPluginManager.apply(NexusPublishPlugin)
+            }
 
-            rootProjectPluginManager.apply(NexusPublishPlugin)
             projectPluginManager.apply(SigningPlugin)
 
             project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
@@ -202,7 +204,7 @@ Note: if project properties are used, the properties must be defined prior to ap
                             }
 
                             if (!mavenPublishUrl) {
-                                throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`.  A URL is required for maven publishing.')
+                                throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
                             }
 
                             url = mavenPublishUrl
