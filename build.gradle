@@ -78,24 +78,48 @@ dependencies {
     // compile grails-gradle-plugin with the Groovy version provided by Gradle
     // to ensure build compatibility with Gradle, currently Groovy 3.0.x
     // see: https://docs.gradle.org/current/userguide/compatibility.html#groovy
-    compileOnly    "org.codehaus.groovy:groovy:$GroovySystem.version"
+    compileOnly "org.codehaus.groovy:groovy:$GroovySystem.version"
     compileOnly "org.grails:grails-bootstrap:$grailsVersion", {
         exclude group: 'org.apache.groovy'
+        exclude group: 'org.spockframework'
     }
     compileOnly "org.grails:grails-shell:$grailsShellVersion", {
         exclude group: 'org.apache.groovy'
+        exclude group: 'org.spockframework'
     }
 
-    runtimeOnly "org.grails:grails-bootstrap:$grailsVersion"
-    runtimeOnly "org.grails:grails-shell:$grailsShellVersion"
+    runtimeOnly "org.grails:grails-bootstrap:$grailsVersion", {
+        exclude group: 'org.apache.groovy'
+        exclude group: 'org.spockframework'
+    }
+    runtimeOnly "org.grails:grails-shell:$grailsShellVersion", {
+        exclude group: 'org.apache.groovy'
+        exclude group: 'org.spockframework'
+    }
 
-    implementation "org.grails:grails-gradle-model:$grailsVersion"
-    
+    implementation "org.grails:grails-gradle-model:$grailsVersion", {
+        exclude group: 'org.apache.groovy'
+        exclude group: 'org.spockframework'
+    }
+
     implementation "io.github.gradle-nexus:publish-plugin:$gradleNexusPublishPluginVersion"
     implementation "com.bmuschko:gradle-nexus-plugin:$gradleNexusPluginVersion"
     implementation "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
     implementation "org.springframework.boot:spring-boot-loader-tools:$springBootVersion"
     implementation "io.spring.gradle:dependency-management-plugin:$springGradleDependencyManagementVersion"
+
+    // Note: must use a groovy 3 compatible version of Spock
+    testImplementation "org.spockframework:spock-core:${project['spock.version']}", {
+        exclude group: 'org.apache.groovy'
+    }
+    testImplementation 'commons-io:commons-io:2.18.0'
+    testImplementation gradleTestKit()
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+    systemProperty("localMavenPath", rootProject.layout.buildDirectory.dir('local-maven').get().asFile.absolutePath)
 }
 
 gradlePlugin {
@@ -238,6 +262,14 @@ publishing {
         }
     }
 
+    // publishAllPublicationsToTestCaseMavenRepoRepository
+    repositories {
+        maven {
+            name = "TestCaseMavenRepo"
+            url = layout.buildDirectory.dir('local-maven')
+        }
+    }
+
     publications {
         pluginMaven(MavenPublication) {
             pom {
@@ -280,7 +312,7 @@ publishing {
 }
 
 project.afterEvaluate {
-    project.publishing.publications.each { MavenPublication publication->
+    project.publishing.publications.each { MavenPublication publication ->
         if (publication.name != "pluginMaven") {
             publication.pom.withXml {
                 def xml = asNode()
