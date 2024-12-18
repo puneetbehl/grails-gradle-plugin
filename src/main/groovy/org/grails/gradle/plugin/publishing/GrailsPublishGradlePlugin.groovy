@@ -125,10 +125,10 @@ Note: if project properties are used, the properties must be defined prior to ap
 
         String detectedVersion = (project.version == Project.DEFAULT_VERSION ? (project.findProperty('projectVersion') ?: Project.DEFAULT_VERSION) : project.version) as String
         if (detectedVersion == Project.DEFAULT_VERSION) {
-            throw new IllegalStateException("Project `${project.name}` has an unspecified version (neither `version` or the property `projectVersion` is defined). Release state cannot be determined.")
+            throw new IllegalStateException("Project ${project.name} has an unspecified version (neither `version` or the property `projectVersion` is defined). Release state cannot be determined.")
         }
         if(project.version == Project.DEFAULT_VERSION) {
-            project.rootProject.logger.warn("Project `${project.name}` does not have a version defined. Using the gradle property `projectVersion` to assume version is ${detectedVersion}.")
+            project.rootProject.logger.warn("Project ${project.name} does not have a version defined. Using the gradle property `projectVersion` to assume version is ${detectedVersion}.")
         }
         project.rootProject.logger.info("Version $detectedVersion detected for project ${project.name}")
 
@@ -138,7 +138,7 @@ Note: if project properties are used, the properties must be defined prior to ap
         }
         boolean isRelease = !isSnapshot
         if (isRelease) {
-            project.rootProject.logger.info("Release detected for Project `${project.name}`")
+            project.rootProject.logger.info("Release detected for Project ${project.name}")
         }
 
         boolean useMavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
@@ -196,6 +196,7 @@ Note: if project properties are used, the properties must be defined prior to ap
         }
 
         project.afterEvaluate {
+            validateProjectState(project)
             project.publishing {
                 if (useMavenPublish) {
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
@@ -205,12 +206,6 @@ Note: if project properties are used, the properties must be defined prior to ap
                                 username = mavenPublishUsername
                                 password = mavenPublishPassword
                             }
-
-                            if (!mavenPublishUrl) {
-                                // TODO: Need to only apply this when trying to publish
-                                // throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
-                            }
-
                             url = mavenPublishUrl
                         }
                     }
@@ -381,6 +376,12 @@ Note: if project properties are used, the properties must be defined prior to ap
 
     protected String getDefaultClassifier() {
         'plugin'
+    }
+
+    private validateProjectState(Project project) {
+        if(!project.components) {
+            throw new RuntimeException("Cannot apply Grails Publish Plugin. Project ${project.name} does not have any components to publish.")
+        }
     }
 }
 

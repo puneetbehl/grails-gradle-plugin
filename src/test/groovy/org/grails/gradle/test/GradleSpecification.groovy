@@ -66,7 +66,7 @@ abstract class GradleSpecification extends Specification {
         FileUtils.deleteQuietly(basePath.toFile())
     }
 
-    protected GradleRunner setupProject(String type, String projectName) {
+    protected GradleRunner setupTestResourceProject(String type, String projectName) {
         Objects.requireNonNull(projectName, "projectName must not be null")
 
         Path destinationDir = basePath.resolve(type)
@@ -75,8 +75,20 @@ abstract class GradleSpecification extends Specification {
         Path sourceProjectDir = Path.of("src/test/resources/publish-projects/$type/$projectName")
         FileUtils.copyDirectoryToDirectory(sourceProjectDir.toFile(), destinationDir.toFile())
 
-        gradleRunner
-                .withProjectDir(destinationDir.resolve(projectName).toFile())
+        setupProject(destinationDir.resolve(projectName))
+    }
+
+    protected GradleRunner setupProject(Path projectDirectory) {
+        gradleRunner.withProjectDir(projectDirectory.toFile())
+    }
+
+    protected Path createProjectDir(String projectName) {
+        Objects.requireNonNull(projectName, "projectName must not be null")
+
+        Path destinationDir = basePath.resolve(projectName)
+        Files.createDirectories(destinationDir)
+
+        destinationDir
     }
 
     protected BuildResult executeTask(String taskName, GradleRunner gradleRunner) {
