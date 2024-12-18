@@ -120,6 +120,7 @@ dependencies {
 tasks.withType(Test).configureEach {
     useJUnitPlatform()
     systemProperty("localMavenPath", rootProject.layout.buildDirectory.dir('local-maven').get().asFile.absolutePath)
+    systemProperty("grailsGradlePluginVersion", rootProject.version)
 }
 
 gradlePlugin {

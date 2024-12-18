@@ -22,7 +22,17 @@ abstract class GradleSpecification extends Specification {
                 .withPluginClasspath()
                 .withTestKitDir(testKitDirectory.toFile())
 
-        gradleRunner = addEnvironmentVariable("LOCAL_MAVEN_PATH", System.getProperty("localMavenPath"), gradleRunner)
+        gradleRunner = addEnvironmentVariable(
+                "LOCAL_MAVEN_PATH",
+                System.getProperty("localMavenPath"),
+                gradleRunner
+        )
+
+        gradleRunner = setGradleProperty(
+                "grailsGradlePluginVersion",
+                System.getProperty("grailsGradlePluginVersion"),
+                gradleRunner
+        )
     }
 
     GradleRunner addEnvironmentVariable(String key, String value, GradleRunner runner) {
@@ -37,7 +47,7 @@ abstract class GradleSpecification extends Specification {
         }
     }
 
-    void setGradleProperty(String key, String value, GradleRunner runner) {
+    GradleRunner setGradleProperty(String key, String value, GradleRunner runner) {
         addEnvironmentVariable("ORG_GRADLE_PROJECT_${key}", value, runner)
     }
 
