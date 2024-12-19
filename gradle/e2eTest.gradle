@@ -7,6 +7,12 @@ def e2eTestTask = tasks.register('e2eTest', Test) {
     systemProperty("localMavenPath", rootProject.layout.buildDirectory.dir('local-maven').get().asFile.absolutePath)
     systemProperty("grailsGradlePluginVersion", rootProject.version)
 
+    testLogging {
+        exceptionFormat = 'full'
+        events 'passed', 'skipped', 'failed', 'standardOut', 'standardError'
+    }
+    beforeTest { descriptor -> logger.quiet " -- $descriptor" }
+
     dependsOn "publishAllPublicationsToTestCaseMavenRepoRepository"
 }
 
