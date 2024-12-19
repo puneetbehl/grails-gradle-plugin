@@ -46,6 +46,8 @@ import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEYRING
 class GrailsPublishGradlePlugin implements Plugin<Project> {
 
     public static String NEXUS_PUBLISH_PLUGIN_ID = 'io.github.gradle-nexus.publish-plugin'
+    public static String MAVEN_PUBLISH_PLUGIN_ID = 'maven-publish'
+    public static String SIGNING_PLUGIN_ID = 'signing'
 
     String getErrorMessage(String missingSetting) {
         return """No '$missingSetting' was specified. Please provide a valid publishing configuration. Example:
@@ -155,26 +157,33 @@ Note: if project properties are used, the properties must be defined prior to ap
         final PluginManager projectPluginManager = project.pluginManager
         projectPluginManager.apply(MavenPublishPlugin)
 
+        if (isRelease || useNexusPublish) {
+            if (project.pluginManager.hasPlugin(SIGNING_PLUGIN_ID)) {
+                project.logger.debug("Signing Plugin already applied to project ${project.name}")
+            } else {
+                projectPluginManager.apply(SigningPlugin)
+            }
+
+            project.tasks.withType(Sign).configureEach { Sign task ->
+                task.onlyIf { isRelease }
+            }
+        }
+
         if (useNexusPublish) {
             // The nexus plugin is special since it must always be applied to the root project.
             // Handle when multiple subprojects exist and grailsPublish is defined in each one instead of at the root.
             final PluginManager rootProjectPluginManager = project.rootProject.pluginManager
             boolean hasNexusPublishApplied = rootProjectPluginManager.hasPlugin(NEXUS_PUBLISH_PLUGIN_ID)
             if (hasNexusPublishApplied) {
-                project.rootProject.logger.info("Nexus Publish Plugin already applied to root project")
-            }
-            else {
+                project.rootProject.logger.debug("Nexus Publish Plugin already applied to root project")
+            } else {
                 rootProjectPluginManager.apply(NexusPublishPlugin)
             }
 
-            projectPluginManager.apply(SigningPlugin)
-
-            project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
-                task.shouldRunAfter = project.tasks.withType(Sign)
-            }
-
-            project.tasks.withType(Sign) {
-                onlyIf { isRelease }
+            if(isRelease) {
+                project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
+                    task.shouldRunAfter = project.tasks.withType(Sign)
+                }
             }
 
             if (!hasNexusPublishApplied) {
@@ -337,7 +346,7 @@ Note: if project properties are used, the properties must be defined prior to ap
                 }
             }
 
-            if (useNexusPublish) {
+            if (isRelease) {
                 extensionContainer.configure(SigningExtension, {
                     it.required = isRelease
                     it.sign project.publishing.publications.maven
