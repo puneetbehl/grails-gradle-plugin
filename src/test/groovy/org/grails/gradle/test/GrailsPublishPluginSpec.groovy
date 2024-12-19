@@ -120,7 +120,6 @@ class GrailsPublishPluginSpec extends GradleSpecification {
         !result.output.contains("does not have a version defined. Using the gradle property `projectVersion` to assume version is ")
     }
 
-
     def "gradle config works when not publishing - milestone - maven publish - legacy-apply - multi-project-no-subproject-build-gradle-publish-all"() {
         given:
         GradleRunner runner = setupTestResourceProject('legacy-apply', 'multi-project-no-subproject-build-gradle-publish-all')
@@ -283,6 +282,82 @@ class GrailsPublishPluginSpec extends GradleSpecification {
         assertBuildSuccess(result, ["compileJava", "processResources"])
 
         !result.output.contains("does not have a version defined. Using the gradle property `projectVersion` to assume version is ")
+    }
+
+    def "project fails on maven publish without url"() {
+        given:
+        Path projectDir = createProjectDir("invalid-sources")
+
+        GradleRunner runner = setupProject(projectDir)
+
+        projectDir.resolve("settings.gradle").toFile().text = """
+            rootProject.name = 'invalid-sources'
+        """
+
+        Path sourceDirectory = projectDir.resolve("src").resolve("main").resolve("groovy")
+        sourceDirectory.toFile().mkdirs()
+
+        sourceDirectory.resolve("Example.groovy").toFile().text = """
+            class Example {
+                String name
+            }
+        """
+
+        projectDir.resolve('build.gradle').toFile().text = """
+            buildscript {
+                repositories {
+                    maven { url "\${System.getenv('LOCAL_MAVEN_PATH')}\" }
+                    maven { url = 'https://repo.grails.org/grails/core' }
+                }
+                dependencies {
+                    classpath "org.grails:grails-gradle-plugin:\$grailsGradlePluginVersion"
+                }
+            }
+            
+            version "0.0.1-SNAPSHOT"
+            group "org.grails.example"
+
+            apply plugin: 'java-library'
+            apply plugin: 'groovy'
+        
+            repositories {
+                maven { url = 'https://repo.grails.org/grails/core' }
+            }
+
+            dependencies {
+                implementation 'org.apache.groovy:groovy-all:4.0.24'
+            }
+        
+            apply plugin: 'org.grails.grails-publish'
+            grailsPublish {
+                githubSlug = 'grails/grails-gradle-plugin'
+                license {
+                    name = 'Apache-2.0'
+                }
+                title = 'Grails Gradle Plugin - Example Project'
+                desc = 'A testing project for the grails gradle plugin'
+                developers = [
+                        jdaugherty: 'James Daugherty',
+                ]
+            }
+        """
+
+        when:
+        def assembleResult = executeTask("assemble", runner)
+
+        then:
+        assertTaskSuccess("assemble", assembleResult)
+        assertBuildSuccess(assembleResult, ["compileJava", "processResources"])
+
+        when:
+        runner = addEnvironmentVariable("MAVEN_PUBLISH_USERNAME", "publishUser", runner)
+        runner = addEnvironmentVariable("MAVEN_PUBLISH_PASSWORD", "publishPassword", runner)
+
+        executeTask("publish", runner)
+
+        then:
+        UnexpectedBuildFailure bf = thrown(UnexpectedBuildFailure)
+        bf.buildResult.output.contains("Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.")
     }
 
     def "project without sources fails grailsPublish apply"() {

@@ -27,6 +27,7 @@ import org.gradle.api.plugins.PluginManager
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.TaskContainer
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.plugins.signing.SigningPlugin
@@ -199,6 +200,7 @@ Note: if project properties are used, the properties must be defined prior to ap
             validateProjectState(project)
             project.publishing {
                 if (useMavenPublish) {
+                    addMavenPublishValidations(project, mavenPublishUrl)
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
@@ -357,6 +359,22 @@ Note: if project properties are used, the properties must be defined prior to ap
                     task.dependsOn(publishToMavenLocal)
                     task.setGroup('publishing')
                 })
+            }
+        }
+    }
+
+    private void addMavenPublishValidations(Project project, def mavenPublishUrl) {
+        project.plugins.withId(MAVEN_PUBLISH_PLUGIN_ID) {
+            TaskProvider<? extends Task> publishTask = project.tasks.named("publish")
+
+            TaskProvider validateBeforePublish = project.tasks.register("requireMavenPublishUrl") {
+                if (!mavenPublishUrl) {
+                    throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
+                }
+            }
+
+            publishTask.configure {
+                it.dependsOn validateBeforePublish
             }
         }
     }
