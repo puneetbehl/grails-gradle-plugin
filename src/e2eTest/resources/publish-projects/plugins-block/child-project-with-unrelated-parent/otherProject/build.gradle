@@ -22,5 +22,5 @@ group "org.grails.example"
 
 dependencies {
     implementation 'org.apache.groovy:groovy-all:4.0.24'
-    implementation project(":subproject1")
+    implementation 'org.grails.example:subproject1'
 }
