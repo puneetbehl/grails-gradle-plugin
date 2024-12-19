@@ -12,6 +12,7 @@ on:
   workflow_dispatch:
 jobs:
   release_notes:
+    if: github.event_name == 'push' && github.repository_owner == 'grails'
     permissions:
       contents: read
     runs-on: ubuntu-latest

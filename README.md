@@ -89,6 +89,8 @@ The credentials and connection url must be specified as a project property or an
     NEXUS_PUBLISH_SNAPSHOT_URL
     NEXUS_PUBLISH_STAGING_PROFILE_ID
 
+By default, the release or snapshot state is determined by the project.version or projectVersion gradle property.  To override this behavior, use the environment variable `GRAILS_PUBLISH_RELEASE` to decide if it's a release or snapshot.
+
 grails-web
 ---------
 * Adds web specific extensions

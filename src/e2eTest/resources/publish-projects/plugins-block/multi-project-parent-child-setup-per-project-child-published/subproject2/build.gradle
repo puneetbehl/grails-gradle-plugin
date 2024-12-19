@@ -1,0 +1,21 @@
+plugins {
+    id 'java-library'
+    id 'groovy'
+    id 'org.grails.grails-publish'
+}
+
+dependencies {
+    implementation 'org.apache.groovy:groovy-all:4.0.24'
+}
+
+grailsPublish {
+    githubSlug = 'grails/grails-gradle-plugin'
+    license {
+        name = 'Apache-2.0'
+    }
+    title = 'Grails Gradle Plugin - Example Project'
+    desc = 'A testing project for the grails gradle plugin'
+    developers = [
+            jdaugherty: 'James Daugherty',
+    ]
+}

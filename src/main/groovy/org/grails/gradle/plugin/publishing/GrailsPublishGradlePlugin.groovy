@@ -27,6 +27,7 @@ import org.gradle.api.plugins.PluginManager
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
 import org.gradle.api.tasks.TaskContainer
+import org.gradle.api.tasks.TaskProvider
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.plugins.signing.SigningPlugin
@@ -45,6 +46,9 @@ import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEYRING
 class GrailsPublishGradlePlugin implements Plugin<Project> {
 
     public static String NEXUS_PUBLISH_PLUGIN_ID = 'io.github.gradle-nexus.publish-plugin'
+    public static String MAVEN_PUBLISH_PLUGIN_ID = 'maven-publish'
+    public static String SIGNING_PLUGIN_ID = 'signing'
+    public static String ENVIRONMENT_VARIABLE_BASED_RELEASE = 'GRAILS_PUBLISH_RELEASE'
 
     String getErrorMessage(String missingSetting) {
         return """No '$missingSetting' was specified. Please provide a valid publishing configuration. Example:
@@ -123,19 +127,32 @@ Note: if project properties are used, the properties must be defined prior to ap
         PublishType snapshotPublishType = gpe.snapshotPublishType
         PublishType releasePublishType = gpe.releasePublishType
 
-        String detectedVersion = (project.version == Project.DEFAULT_VERSION ? (project.findProperty('projectVersion') ?: Project.DEFAULT_VERSION) : project.version) as String
-        if (detectedVersion == Project.DEFAULT_VERSION) {
-            throw new IllegalStateException("Project `${project.name}` has an unspecified version (neither `version` or the property `projectVersion` is defined). Release state cannot be determined.")
-        }
-        project.rootProject.logger.info("Version $detectedVersion detected for project ${project.name}")
+        boolean isSnapshot, isRelease
+        if (System.getenv(ENVIRONMENT_VARIABLE_BASED_RELEASE) != null) {
+            // Detect release state based on environment variables instead of versions
+            isRelease = Boolean.parseBoolean(System.getenv(ENVIRONMENT_VARIABLE_BASED_RELEASE))
+            isSnapshot = !isRelease
 
-        boolean isSnapshot = detectedVersion.endsWith('SNAPSHOT')
-        if (isSnapshot) {
-            project.rootProject.logger.info("Snapshot version detected for project ${project.name}")
+            project.rootProject.logger.lifecycle("Environment Variable `$ENVIRONMENT_VARIABLE_BASED_RELEASE` detected - using variable instead of project version.")
+        } else {
+            String detectedVersion = (project.version == Project.DEFAULT_VERSION ? (project.findProperty('projectVersion') ?: Project.DEFAULT_VERSION) : project.version) as String
+            if (detectedVersion == Project.DEFAULT_VERSION) {
+                throw new IllegalStateException("Project ${project.name} has an unspecified version (neither `version` or the property `projectVersion` is defined). Release state cannot be determined.")
+            }
+            if (project.version == Project.DEFAULT_VERSION) {
+                project.rootProject.logger.warn("Project ${project.name} does not have a version defined. Using the gradle property `projectVersion` to assume version is ${detectedVersion}.")
+            }
+            project.rootProject.logger.info("Version $detectedVersion detected for project ${project.name}")
+
+            isSnapshot = detectedVersion.endsWith('SNAPSHOT')
+            isRelease = !isSnapshot
         }
-        boolean isRelease = !isSnapshot
+
+        if (isSnapshot) {
+            project.rootProject.logger.info("Project ${project.name} will be a snapshot.")
+        }
         if (isRelease) {
-            project.rootProject.logger.info("Release detected for Project `${project.name}`")
+            project.rootProject.logger.info("Project ${project.name} will be a release.")
         }
 
         boolean useMavenPublish = (isSnapshot && snapshotPublishType == PublishType.MAVEN_PUBLISH) || (isRelease && releasePublishType == PublishType.MAVEN_PUBLISH)
@@ -151,26 +168,33 @@ Note: if project properties are used, the properties must be defined prior to ap
         final PluginManager projectPluginManager = project.pluginManager
         projectPluginManager.apply(MavenPublishPlugin)
 
+        if (isRelease || useNexusPublish) {
+            if (project.pluginManager.hasPlugin(SIGNING_PLUGIN_ID)) {
+                project.logger.debug("Signing Plugin already applied to project ${project.name}")
+            } else {
+                projectPluginManager.apply(SigningPlugin)
+            }
+
+            project.tasks.withType(Sign).configureEach { Sign task ->
+                task.onlyIf { isRelease }
+            }
+        }
+
         if (useNexusPublish) {
             // The nexus plugin is special since it must always be applied to the root project.
             // Handle when multiple subprojects exist and grailsPublish is defined in each one instead of at the root.
             final PluginManager rootProjectPluginManager = project.rootProject.pluginManager
             boolean hasNexusPublishApplied = rootProjectPluginManager.hasPlugin(NEXUS_PUBLISH_PLUGIN_ID)
             if (hasNexusPublishApplied) {
-                project.rootProject.logger.info("Nexus Publish Plugin already applied to root project")
-            }
-            else {
+                project.rootProject.logger.debug("Nexus Publish Plugin already applied to root project")
+            } else {
                 rootProjectPluginManager.apply(NexusPublishPlugin)
             }
 
-            projectPluginManager.apply(SigningPlugin)
-
-            project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
-                task.shouldRunAfter = project.tasks.withType(Sign)
-            }
-
-            project.tasks.withType(Sign) {
-                onlyIf { isRelease }
+            if (isRelease) {
+                project.rootProject.tasks.withType(InitializeNexusStagingRepository).configureEach { InitializeNexusStagingRepository task ->
+                    task.shouldRunAfter = project.tasks.withType(Sign)
+                }
             }
 
             if (!hasNexusPublishApplied) {
@@ -193,8 +217,10 @@ Note: if project properties are used, the properties must be defined prior to ap
         }
 
         project.afterEvaluate {
+            validateProjectState(project)
             project.publishing {
                 if (useMavenPublish) {
+                    addMavenPublishValidations(project, mavenPublishUrl)
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
@@ -202,12 +228,6 @@ Note: if project properties are used, the properties must be defined prior to ap
                                 username = mavenPublishUsername
                                 password = mavenPublishPassword
                             }
-
-                            if (!mavenPublishUrl) {
-                                // TODO: Need to only apply this when trying to publish
-                                // throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
-                            }
-
                             url = mavenPublishUrl
                         }
                     }
@@ -337,7 +357,7 @@ Note: if project properties are used, the properties must be defined prior to ap
                 }
             }
 
-            if (useNexusPublish) {
+            if (isRelease) {
                 extensionContainer.configure(SigningExtension, {
                     it.required = isRelease
                     it.sign project.publishing.publications.maven
@@ -363,6 +383,22 @@ Note: if project properties are used, the properties must be defined prior to ap
         }
     }
 
+    private void addMavenPublishValidations(Project project, def mavenPublishUrl) {
+        project.plugins.withId(MAVEN_PUBLISH_PLUGIN_ID) {
+            TaskProvider<? extends Task> publishTask = project.tasks.named("publish")
+
+            TaskProvider validateBeforePublish = project.tasks.register("requireMavenPublishUrl") {
+                if (!mavenPublishUrl) {
+                    throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
+                }
+            }
+
+            publishTask.configure {
+                it.dependsOn validateBeforePublish
+            }
+        }
+    }
+
     protected void doAddArtefact(Project project, MavenPublication publication) {
         publication.from project.components.java
     }
@@ -378,6 +414,12 @@ Note: if project properties are used, the properties must be defined prior to ap
 
     protected String getDefaultClassifier() {
         'plugin'
+    }
+
+    private validateProjectState(Project project) {
+        if (!project.components) {
+            throw new RuntimeException("Cannot apply Grails Publish Plugin. Project ${project.name} does not have any components to publish.")
+        }
     }
 }
 

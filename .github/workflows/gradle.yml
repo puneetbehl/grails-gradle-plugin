@@ -32,7 +32,7 @@ jobs:
           DEVELOCITY_BUILD_CACHE_NODE_KEY: ${{ secrets.GRADLE_ENTERPRISE_BUILD_CACHE_NODE_KEY }}
         run: ./gradlew build
   publish:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.repository_owner == 'grails'
     needs: ['build']
     runs-on: ubuntu-latest
     steps:
@@ -59,7 +59,7 @@ jobs:
           -Dorg.gradle.internal.publish.checksums.insecure=true
           publish
   docs:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.repository_owner == 'grails'
     needs: publish
     runs-on: ubuntu-latest
     permissions:
