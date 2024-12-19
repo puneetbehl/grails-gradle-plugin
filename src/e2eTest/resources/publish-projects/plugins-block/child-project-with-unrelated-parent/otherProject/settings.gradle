@@ -1,0 +1,4 @@
+rootProject.name = 'otherProject'
+
+include 'subproject1'
+project(':subproject1').projectDir = file('..')

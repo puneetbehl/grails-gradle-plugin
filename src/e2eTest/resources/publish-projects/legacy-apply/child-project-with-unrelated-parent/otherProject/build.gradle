@@ -1,0 +1,14 @@
+repositories {
+    maven { url = 'https://repo.grails.org/grails/core' }
+}
+
+version "${projectVersion}"
+group "org.grails.example"
+
+apply plugin: 'java-library'
+apply plugin: 'groovy'
+
+dependencies {
+    implementation 'org.apache.groovy:groovy-all:4.0.24'
+    implementation project(":subproject1")
+}
