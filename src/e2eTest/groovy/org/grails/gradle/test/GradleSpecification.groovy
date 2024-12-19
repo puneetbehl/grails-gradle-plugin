@@ -72,7 +72,7 @@ abstract class GradleSpecification extends Specification {
         Path destinationDir = basePath.resolve(type)
         Files.createDirectories(destinationDir)
 
-        Path sourceProjectDir = Path.of("src/test/resources/publish-projects/$type/$projectName")
+        Path sourceProjectDir = Path.of("src/e2eTest/resources/publish-projects/$type/$projectName")
         FileUtils.copyDirectoryToDirectory(sourceProjectDir.toFile(), destinationDir.toFile())
 
         setupProject(destinationDir.resolve(projectName))

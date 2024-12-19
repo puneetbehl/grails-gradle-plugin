@@ -107,20 +107,6 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion"
     implementation "org.springframework.boot:spring-boot-loader-tools:$springBootVersion"
     implementation "io.spring.gradle:dependency-management-plugin:$springGradleDependencyManagementVersion"
-
-    // Note: must use a groovy 3 compatible version of Spock
-    testImplementation "org.spockframework:spock-core:${project['spock.version']}", {
-        exclude group: 'org.apache.groovy'
-    }
-    testImplementation 'commons-io:commons-io:2.18.0'
-    testImplementation gradleTestKit()
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
-
-tasks.withType(Test).configureEach {
-    useJUnitPlatform()
-    systemProperty("localMavenPath", rootProject.layout.buildDirectory.dir('local-maven').get().asFile.absolutePath)
-    systemProperty("grailsGradlePluginVersion", rootProject.version)
 }
 
 gradlePlugin {
@@ -327,3 +313,4 @@ tasks.named("build").configure {
     finalizedBy("groovydoc")
 }
 
+apply from: rootProject.layout.projectDirectory.file('gradle/e2eTest.gradle')
