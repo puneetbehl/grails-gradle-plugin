@@ -37,12 +37,11 @@ abstract class GradleSpecification extends Specification {
 
     GradleRunner addEnvironmentVariable(String key, String value, GradleRunner runner) {
         Map environment = runner.environment
-        if(environment) {
+        if (environment) {
             environment.put(key, value)
 
             return runner
-        }
-        else {
+        } else {
             return runner.withEnvironment([(key): value])
         }
     }
@@ -54,7 +53,7 @@ abstract class GradleSpecification extends Specification {
     void cleanup() {
         basePath.toFile().listFiles().each {
             // Reuse the gradle cache from previous tests
-            if(it.name == ".gradle") {
+            if (it.name == ".gradle") {
                 return
             }
 
@@ -91,8 +90,11 @@ abstract class GradleSpecification extends Specification {
         destinationDir
     }
 
-    protected BuildResult executeTask(String taskName, GradleRunner gradleRunner) {
-        gradleRunner.withArguments(taskName, "--stacktrace").forwardOutput().build()
+    protected BuildResult executeTask(String taskName, List<String> otherArguments = [], GradleRunner gradleRunner) {
+        List arguments = [taskName, "--stacktrace"]
+        arguments.addAll(otherArguments)
+
+        gradleRunner.withArguments(arguments).forwardOutput().build()
     }
 
     protected void assertTaskSuccess(String taskName, BuildResult result) {
@@ -112,10 +114,10 @@ abstract class GradleSpecification extends Specification {
         def results = result.tasks.groupBy { it.outcome }
 
         for (String ignoredTaskName : ignoreTaskNames) {
-            for (BuildTask ignoredTask  : result.tasks.findAll { it.path.endsWith("${ignoredTaskName}") }) {
+            for (BuildTask ignoredTask : result.tasks.findAll { it.path.endsWith("${ignoredTaskName}") }) {
                 def taskOutComeTasks = results.get(ignoredTask.outcome)
                 taskOutComeTasks.remove(ignoredTask)
-                if(!taskOutComeTasks) {
+                if (!taskOutComeTasks) {
                     results.remove(ignoredTask.outcome)
                 }
             }

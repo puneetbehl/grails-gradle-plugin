@@ -12,13 +12,18 @@ class GrailsPublishPluginSpec extends GradleSpecification {
         GradleRunner runner = setupTestResourceProject('legacy-apply', 'multi-project-no-subproject-build-gradle-publish-all')
 
         when:
-        def result = executeTask("assemble", runner)
+        def result = executeTask("assemble", ["--info"], runner)
 
         then:
         assertTaskSuccess("assemble", result)
         assertBuildSuccess(result, ["compileJava", "processResources"])
 
         !result.output.contains("does not have a version defined. Using the gradle property `projectVersion` to assume version is ")
+        !result.output.contains("Environment Variable `GRAILS_PUBLISH_RELEASE` detected - using variable instead of project version.")
+        result.output.contains("Project subproject1 will be a snapshot.")
+        !result.output.contains("Project subproject1 will be a release.")
+        result.output.contains("Project subproject2 will be a snapshot.")
+        !result.output.contains("Project subproject2 will be a release.")
     }
 
     def "gradle config works when not publishing - snapshot - maven publish - legacy-apply - multi-project-no-subproject-build-gradle-publish-per-project"() {
@@ -530,5 +535,45 @@ class GrailsPublishPluginSpec extends GradleSpecification {
         then:
         UnexpectedBuildFailure bf = thrown(UnexpectedBuildFailure)
         bf.buildResult.output.contains("Cannot apply Grails Publish Plugin. Project invalid-sources does not have any components to publish.")
+    }
+
+    def "project with environment variable based snapshot or release detection - is snapshot"() {
+        given:
+        GradleRunner runner = setupTestResourceProject('legacy-apply', 'multi-project-no-subproject-build-gradle-publish-all')
+
+        runner = setGradleProperty("projectVersion", "0.0.1-M1", runner)
+        runner = addEnvironmentVariable("GRAILS_PUBLISH_RELEASE", "false", runner)
+
+        when:
+        def result = executeTask("assemble", ["--info"], runner)
+
+        then:
+        assertTaskSuccess("assemble", result)
+        assertBuildSuccess(result, ["compileJava", "processResources"])
+
+        !result.output.contains("does not have a version defined. Using the gradle property `projectVersion` to assume version is ")
+        result.output.contains("Environment Variable `GRAILS_PUBLISH_RELEASE` detected - using variable instead of project version.")
+        result.output.contains("Project subproject1 will be a snapshot.")
+        result.output.contains("Project subproject2 will be a snapshot.")
+    }
+
+    def "project with environment variable based snapshot or release detection - is release"() {
+        given:
+        GradleRunner runner = setupTestResourceProject('legacy-apply', 'multi-project-no-subproject-build-gradle-publish-all')
+
+        runner = setGradleProperty("projectVersion", "0.0.1-SNAPSHOT", runner)
+        runner = addEnvironmentVariable("GRAILS_PUBLISH_RELEASE", "true", runner)
+
+        when:
+        def result = executeTask("assemble", ["--info"], runner)
+
+        then:
+        assertTaskSuccess("assemble", result)
+        assertBuildSuccess(result, ["compileJava", "processResources"])
+
+        !result.output.contains("does not have a version defined. Using the gradle property `projectVersion` to assume version is ")
+        result.output.contains("Environment Variable `GRAILS_PUBLISH_RELEASE` detected - using variable instead of project version.")
+        result.output.contains("Project subproject1 will be a release.")
+        result.output.contains("Project subproject2 will be a release.")
     }
 }
