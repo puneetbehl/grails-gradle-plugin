@@ -199,7 +199,7 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
         project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar) {
             it.enabled = true
             it.archiveClassifier.set('') // Remove '-plain' suffix from jar file name
-            it.exclude('application.yml', 'application.groovy', 'logback.groovy', 'logback.xml')
+            it.exclude('application.yml', 'application.groovy', 'logback.groovy', 'logback.xml', 'logback-spring.xml')
         }
     }
 
