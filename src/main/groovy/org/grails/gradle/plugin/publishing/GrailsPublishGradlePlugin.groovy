@@ -217,10 +217,10 @@ Note: if project properties are used, the properties must be defined prior to ap
         }
 
         project.afterEvaluate {
-            validateProjectState(project)
+            validateProjectPublishable(project as Project)
             project.publishing {
                 if (useMavenPublish) {
-                    addMavenPublishValidations(project, mavenPublishUrl)
+                    addMavenPublishValidations(project as Project, mavenPublishUrl)
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
@@ -383,7 +383,7 @@ Note: if project properties are used, the properties must be defined prior to ap
         }
     }
 
-    private void addMavenPublishValidations(Project project, def mavenPublishUrl) {
+    protected void addMavenPublishValidations(Project project, def mavenPublishUrl) {
         project.plugins.withId(MAVEN_PUBLISH_PLUGIN_ID) {
             TaskProvider<? extends Task> publishTask = project.tasks.named("publish")
 
@@ -416,7 +416,7 @@ Note: if project properties are used, the properties must be defined prior to ap
         'plugin'
     }
 
-    private validateProjectState(Project project) {
+    protected validateProjectPublishable(Project project) {
         if (!project.components) {
             throw new RuntimeException("Cannot apply Grails Publish Plugin. Project ${project.name} does not have any components to publish.")
         }
