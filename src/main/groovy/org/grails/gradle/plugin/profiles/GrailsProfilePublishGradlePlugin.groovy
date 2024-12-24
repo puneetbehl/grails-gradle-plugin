@@ -93,4 +93,9 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
             }
         })
     }
+
+    @Override
+    protected validateProjectPublishable(Project project) {
+        // no-op
+    }
 }
