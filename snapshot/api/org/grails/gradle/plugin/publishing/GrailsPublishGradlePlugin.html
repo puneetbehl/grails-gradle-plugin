@@ -217,32 +217,44 @@ implements org.gradle.api.Plugin&lt;org.gradle.api.Project&gt;</pre>
                         
                         <tr class="altColor">
                             <td class="colFirst"><code></code></td>
+                            <td class="colLast"><code>protected&nbsp;void</code></td>
+                            <td class="colLast"><code><strong><a href="#addMavenPublishValidations(org.gradle.api.Project, java.lang.Object)">addMavenPublishValidations</a></strong>(org.gradle.api.Project project, java.lang.Object mavenPublishUrl)</code><br></td>
+                        </tr>
+                        
+                        <tr class="rowColor">
+                            <td class="colFirst"><code></code></td>
                             <td class="colLast"><code>void</code></td>
                             <td class="colLast"><code><strong><a href="#apply(org.gradle.api.Project)">apply</a></strong>(org.gradle.api.Project project)</code><br></td>
                         </tr>
                         
-                        <tr class="rowColor">
+                        <tr class="altColor">
                             <td class="colFirst"><code></code></td>
                             <td class="colLast"><code>protected&nbsp;void</code></td>
                             <td class="colLast"><code><strong><a href="#doAddArtefact(org.gradle.api.Project, org.gradle.api.publish.maven.MavenPublication)">doAddArtefact</a></strong>(org.gradle.api.Project project, org.gradle.api.publish.maven.MavenPublication publication)</code><br></td>
                         </tr>
                         
-                        <tr class="altColor">
+                        <tr class="rowColor">
                             <td class="colFirst"><code></code></td>
                             <td class="colLast"><code>protected&nbsp;java.lang.String</code></td>
                             <td class="colLast"><code><strong><a href="#getDefaultClassifier()">getDefaultClassifier</a></strong>()</code><br></td>
                         </tr>
                         
-                        <tr class="rowColor">
+                        <tr class="altColor">
                             <td class="colFirst"><code></code></td>
                             <td class="colLast"><code>protected&nbsp;java.util.Map&lt;java.lang.String, java.lang.String&gt;</code></td>
                             <td class="colLast"><code><strong><a href="#getDefaultExtraArtifact(org.gradle.api.Project)">getDefaultExtraArtifact</a></strong>(org.gradle.api.Project project)</code><br></td>
                         </tr>
                         
-                        <tr class="altColor">
+                        <tr class="rowColor">
                             <td class="colFirst"><code></code></td>
                             <td class="colLast"><code>java.lang.String</code></td>
                             <td class="colLast"><code><strong><a href="#getErrorMessage(java.lang.String)">getErrorMessage</a></strong>(java.lang.String missingSetting)</code><br></td>
+                        </tr>
+                        
+                        <tr class="altColor">
+                            <td class="colFirst"><code></code></td>
+                            <td class="colLast"><code>protected&nbsp;java.lang.Object</code></td>
+                            <td class="colLast"><code><strong><a href="#validateProjectPublishable(org.gradle.api.Project)">validateProjectPublishable</a></strong>(org.gradle.api.Project project)</code><br></td>
                         </tr>
                         
                     </table>
@@ -355,6 +367,14 @@ implements org.gradle.api.Plugin&lt;org.gradle.api.Project&gt;</pre>
                 </a>
                     <h3>Method Detail</h3>
                     
+                        <a name="addMavenPublishValidations(org.gradle.api.Project, java.lang.Object)"><!-- --></a>
+                        <ul class="blockListLast">
+                            <li class="blockList">
+                                <h4>protected&nbsp;void <strong>addMavenPublishValidations</strong>(org.gradle.api.Project project, java.lang.Object mavenPublishUrl)</h4>
+                                <p></p>
+                            </li>
+                        </ul>
+                    
                         <a name="apply(org.gradle.api.Project)"><!-- --></a>
                         <ul class="blockListLast">
                             <li class="blockList">
@@ -392,6 +412,14 @@ void <strong>apply</strong>(org.gradle.api.Project project)</h4>
                         <ul class="blockListLast">
                             <li class="blockList">
                                 <h4>java.lang.String <strong>getErrorMessage</strong>(java.lang.String missingSetting)</h4>
+                                <p></p>
+                            </li>
+                        </ul>
+                    
+                        <a name="validateProjectPublishable(org.gradle.api.Project)"><!-- --></a>
+                        <ul class="blockListLast">
+                            <li class="blockList">
+                                <h4>protected&nbsp;java.lang.Object <strong>validateProjectPublishable</strong>(org.gradle.api.Project project)</h4>
                                 <p></p>
                             </li>
                         </ul>
