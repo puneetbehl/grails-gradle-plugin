@@ -68,9 +68,11 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
             configureProjectNameAndVersionASTMetadata(project)
         }
 
+        configureAssembleTask(project)
+
         configurePluginResources(project)
 
-        configurePluginJarTask(project)
+        configureJarTask(project)
 
         configureSourcesJarTask(project)
 
@@ -192,14 +194,40 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
         }
     }
 
-    protected void configurePluginJarTask(Project project) {
-        project.tasks.named(SpringBootPlugin.BOOT_JAR_TASK_NAME) {
-            it.enabled = false // Grails Plugins should not produce a bootJar
+    protected void configureAssembleTask(Project project) {
+        // Assemble task in Grails Plugins should only produce a plain jar
+        project.tasks.named('assemble') { Task assembleTask ->
+            def disabledTasks = [
+                'bootDistTar',
+                'bootDistZip',
+                'bootJar',
+                'bootStartScripts',
+                'bootWar',
+                'bootWarMainClassName',
+                'distTar',
+                'distZip',
+                'startScripts',
+                'war'
+            ]
+            disabledTasks.each { String disabledTaskName ->
+                project.tasks.findByName(disabledTaskName)?.enabled = false
+            }
+            // By default the assemble task does not create a plain jar
+            assembleTask.dependsOn('jar')
         }
-        project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar) {
-            it.enabled = true
-            it.archiveClassifier.set('') // Remove '-plain' suffix from jar file name
-            it.exclude('application.yml', 'application.groovy', 'logback.groovy', 'logback.xml', 'logback-spring.xml')
+    }
+
+    protected void configureJarTask(Project project) {
+        project.tasks.named('jar', Jar) { Jar jarTask ->
+            jarTask.enabled = true
+            jarTask.archiveClassifier.set('') // Remove '-plain' suffix from jar file name
+            jarTask.exclude(
+                    'application.groovy',
+                    'application.yml',
+                    'logback.groovy',
+                    'logback.xml',
+                    'logback-spring.xml'
+            )
         }
     }
 
