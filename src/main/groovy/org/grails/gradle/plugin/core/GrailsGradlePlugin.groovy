@@ -289,24 +289,29 @@ class GrailsGradlePlugin extends GroovyPlugin {
                 }
             }
         }
+        configureJavaDateTimeImport(project)
+    }
 
-        GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
-        project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
+    protected void configureJavaDateTimeImport(Project project) {
+        project.afterEvaluate {
+            GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
             if (grailsExt.importJavaTime) {
-                groovyCompileTask.doFirst {
-                    def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
-                    if (configScriptStream != null) {
-                        def tempConfigScriptFile = File.createTempFile("build/GrailsCompilerConfig", ".groovy")
-                        tempConfigScriptFile.mkdirs()
-                        tempConfigScriptFile.deleteOnExit()
+                project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
+                    groovyCompileTask.doFirst {
+                        def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
+                        if (configScriptStream != null) {
+                            def tempConfigScriptFile = File.createTempFile("build/GrailsCompilerConfig", ".groovy")
+                            tempConfigScriptFile.mkdirs()
+                            tempConfigScriptFile.deleteOnExit()
 
-                        def existingScript = groovyCompileTask.groovyOptions.configurationScript
-                        if (existingScript) {
-                            tempConfigScriptFile << existingScript.text
+                            def existingScript = groovyCompileTask.groovyOptions.configurationScript
+                            if (existingScript) {
+                                tempConfigScriptFile << existingScript.text
+                            }
+
+                            tempConfigScriptFile.text = configScriptStream.text
+                            groovyCompileTask.groovyOptions.configurationScript = tempConfigScriptFile
                         }
-
-                        tempConfigScriptFile.text = configScriptStream.text
-                        groovyCompileTask.groovyOptions.configurationScript = tempConfigScriptFile
                     }
                 }
             }
