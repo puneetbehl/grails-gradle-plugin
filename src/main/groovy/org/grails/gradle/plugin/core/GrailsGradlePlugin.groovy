@@ -151,7 +151,10 @@ class GrailsGradlePlugin extends GroovyPlugin {
 
         project.tasks.withType(GroovyCompile).configureEach { GroovyCompile task ->
             task.dependsOn('configScript')
-            task.groovyOptions.configurationScript = project.tasks.named('configScript').get().outputs.files.singleFile
+            def mergedConfigFile = project.tasks.named('configScript').get().outputs.files.singleFile
+            if (mergedConfigFile.exists()) {
+                task.groovyOptions.configurationScript = mergedConfigFile
+            }
         }
     }
 
