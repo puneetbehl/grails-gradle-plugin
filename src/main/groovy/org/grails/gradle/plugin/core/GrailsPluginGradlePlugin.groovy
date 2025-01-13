@@ -256,32 +256,22 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
         }
     }
 
-    @CompileDynamic
     protected void configureProjectNameAndVersionASTMetadata(Project project) {
-        def configScriptTask = project.tasks.create('configScript')
-
-        def configFile = project.file("$project.buildDir/config.groovy")
-        configScriptTask.outputs.file(configFile)
-
         def projectName = project.name
         def projectVersion = project.version
+        def configScriptTask = project.tasks.named('configScript').get()
         configScriptTask.inputs.property('name', projectName)
         configScriptTask.inputs.property('version', projectVersion)
         configScriptTask.doLast {
-            configFile.parentFile.mkdirs()
-            configFile.text = """
-withConfig(configuration) {
-    inline(phase: 'CONVERSION') { source, context, classNode ->
-        classNode.putNodeMetaData('projectVersion', '$projectVersion')
-        classNode.putNodeMetaData('projectName', '$projectName')
-        classNode.putNodeMetaData('isPlugin', 'true')
-    }
-}
-"""
-        }
-        project.tasks.getByName('compileGroovy').dependsOn(configScriptTask)
-        project.compileGroovy {
-            groovyOptions.configurationScript = configFile
+            outputs.files.singleFile << """
+            withConfig(configuration) {
+                inline(phase: 'CONVERSION') { source, context, classNode ->
+                    classNode.putNodeMetaData('projectVersion', '$projectVersion')
+                    classNode.putNodeMetaData('projectName', '$projectName')
+                    classNode.putNodeMetaData('isPlugin', 'true')
+                }
+            }
+            """.stripIndent(12)
         }
     }
 

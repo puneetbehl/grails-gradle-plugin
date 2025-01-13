@@ -75,6 +75,8 @@ java {
 }
 
 dependencies {
+    implementation platform("org.grails:grails-bom:$grailsVersion")
+
     // compile grails-gradle-plugin with the Groovy version provided by Gradle
     // to ensure build compatibility with Gradle, currently Groovy 3.0.x
     // see: https://docs.gradle.org/current/userguide/compatibility.html#groovy

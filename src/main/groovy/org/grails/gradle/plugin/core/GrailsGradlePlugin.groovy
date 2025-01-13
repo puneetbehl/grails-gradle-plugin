@@ -143,6 +143,16 @@ class GrailsGradlePlugin extends GroovyPlugin {
         configureRunCommand(project)
 
         configurePathingJar(project)
+
+        def configScriptTask = project.tasks.create('configScript')
+        def configFile = project.layout.buildDirectory.file('config.groovy')
+        configScriptTask.outputs.file(configFile)
+        addJavaTimeImport(project, configScriptTask)
+
+        project.tasks.withType(GroovyCompile).configureEach { GroovyCompile task ->
+            task.dependsOn('configScript')
+            task.groovyOptions.configurationScript = project.tasks.named('configScript').get().outputs.files.singleFile
+        }
     }
 
     protected void excludeDependencies(Project project) {
@@ -289,26 +299,19 @@ class GrailsGradlePlugin extends GroovyPlugin {
                 }
             }
         }
+    }
 
-        GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
-        project.tasks.withType(GroovyCompile).configureEach { groovyCompileTask ->
+    protected void addJavaTimeImport(Project project, Task configScriptTask) {
+        configScriptTask.doLast {
+            GrailsExtension grailsExt = project.extensions.getByType(GrailsExtension)
             if (grailsExt.importJavaTime) {
-                groovyCompileTask.doFirst {
-                    def configScriptStream = getClass().getResourceAsStream("/GrailsCompilerConfig.groovy")
-                    if (configScriptStream != null) {
-                        def tempConfigScriptFile = File.createTempFile("build/GrailsCompilerConfig", ".groovy")
-                        tempConfigScriptFile.mkdirs()
-                        tempConfigScriptFile.deleteOnExit()
-
-                        def existingScript = groovyCompileTask.groovyOptions.configurationScript
-                        if (existingScript) {
-                            tempConfigScriptFile << existingScript.text
-                        }
-
-                        tempConfigScriptFile.text = configScriptStream.text
-                        groovyCompileTask.groovyOptions.configurationScript = tempConfigScriptFile
-                    }
+                outputs.files.singleFile << '''
+                configuration.with {
+                    def importCustomizer = new org.codehaus.groovy.control.customizers.ImportCustomizer()
+                    importCustomizer.addStarImports('java.time')
+                    addCompilationCustomizers(importCustomizer)
                 }
+                '''.stripIndent(16)
             }
         }
     }
