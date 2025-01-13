@@ -146,12 +146,16 @@ class GrailsGradlePlugin extends GroovyPlugin {
 
         def configScriptTask = project.tasks.create('configScript')
         def configFile = project.layout.buildDirectory.file('config.groovy')
+        configFile.get().asFile.delete()
         configScriptTask.outputs.file(configFile)
         addJavaTimeImport(project, configScriptTask)
 
         project.tasks.withType(GroovyCompile).configureEach { GroovyCompile task ->
             task.dependsOn('configScript')
-            task.groovyOptions.configurationScript = project.tasks.named('configScript').get().outputs.files.singleFile
+            def mergedConfigFile = project.tasks.named('configScript').get().outputs.files.singleFile
+            if (mergedConfigFile.exists()) {
+                task.groovyOptions.configurationScript = mergedConfigFile
+            }
         }
     }
 
