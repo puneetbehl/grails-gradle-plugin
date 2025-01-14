@@ -144,17 +144,18 @@ class GrailsGradlePlugin extends GroovyPlugin {
 
         configurePathingJar(project)
 
-        def configScriptTask = project.tasks.create('configScript')
-        def configFile = project.layout.buildDirectory.file('config.groovy')
-        configFile.get().asFile.delete()
-        configScriptTask.outputs.file(configFile)
-        addJavaTimeImport(project, configScriptTask)
-
-        project.tasks.withType(GroovyCompile).configureEach { GroovyCompile task ->
-            task.dependsOn('configScript')
-            def mergedConfigFile = project.tasks.named('configScript').get().outputs.files.singleFile
-            if (mergedConfigFile.exists()) {
-                task.groovyOptions.configurationScript = mergedConfigFile
+        if (project.tasks.findByName('configScript') == null) {
+            def configScriptTask = project.tasks.create('configScript')
+            def configFile = project.layout.buildDirectory.file('config.groovy')
+            configFile.get().asFile.delete()
+            configScriptTask.outputs.file(configFile)
+            addJavaTimeImport(project, configScriptTask)
+            project.tasks.withType(GroovyCompile).configureEach { GroovyCompile task ->
+                task.dependsOn('configScript')
+                def mergedConfigFile = project.tasks.named('configScript').get().outputs.files.singleFile
+                if (mergedConfigFile.exists()) {
+                    task.groovyOptions.configurationScript = mergedConfigFile
+                }
             }
         }
     }
