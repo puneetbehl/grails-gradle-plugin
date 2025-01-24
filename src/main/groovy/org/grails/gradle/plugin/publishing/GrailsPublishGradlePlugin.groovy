@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2024 original authors
+ * Copyright 2015-2025 original authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package org.grails.gradle.plugin.publishing
 
 import grails.util.GrailsNameUtils
+import groovy.namespace.QName
 import io.github.gradlenexus.publishplugin.InitializeNexusStagingRepository
 import io.github.gradlenexus.publishplugin.NexusPublishPlugin
 import org.gradle.api.Plugin
@@ -344,13 +345,34 @@ Note: if project properties are used, the properties must be defined prior to ap
                             }
 
                             // fix dependencies without a version
-                            // resolve versions via global dependency management
-                            // see https://github.com/spring-gradle-plugins/dependency-management-plugin/issues/8 for more complete solutions
-                            final versions = project.dependencyManagement.dependencyManagementContainer.globalDependencyManagement.versions
-                            pomNode.dependencies.dependency.findAll {
-                                it.version.text().isEmpty()
-                            }.each {
-                                it.appendNode('version', versions["${it.groupId.text()}:${it.artifactId.text()}"])
+                            def mavenPomNamespace = 'http://maven.apache.org/POM/4.0.0'
+                            def dependenciesQName = new QName(mavenPomNamespace, 'dependencies')
+                            def dependencyQName = new QName(mavenPomNamespace, 'dependency')
+                            def versionQName = new QName(mavenPomNamespace, 'version')
+                            def groupIdQName = new QName(mavenPomNamespace, 'groupId')
+                            def artifactIdQName = new QName(mavenPomNamespace, 'artifactId')
+                            def dependencyNodes = ((pomNode.getAt(dependenciesQName) as NodeList).first() as Node).getAt(dependencyQName)
+                            dependencyNodes.findAll { dependencyNode ->
+                                def versionNodes = (dependencyNode as Node).getAt(versionQName)
+                                return versionNodes.size() == 0 || (versionNodes.first() as Node).text().isEmpty()
+                            }.each { dependencyNode ->
+                                def groupId = ((dependencyNode as Node).getAt(groupIdQName).first() as Node).text()
+                                def artifactId = ((dependencyNode as Node).getAt(artifactIdQName).first() as Node).text()
+                                def resolvedArtifacts = project.configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts +
+                                                        project.configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+                                def managedVersion = resolvedArtifacts.find {
+                                    it.moduleVersion.id.group == groupId &&
+                                    it.moduleVersion.id.name == artifactId
+                                }?.moduleVersion?.id?.version
+                                if (!managedVersion) {
+                                    throw new RuntimeException("No version found for dependency $groupId:$artifactId.")
+                                }
+                                def versionNode = (dependencyNode as Node).getAt(versionQName)
+                                if (versionNode) {
+                                    (versionNode.first() as Node).value = managedVersion
+                                } else {
+                                    (dependencyNode as Node).appendNode('version', managedVersion)
+                                }
                             }
                         }
                     }
