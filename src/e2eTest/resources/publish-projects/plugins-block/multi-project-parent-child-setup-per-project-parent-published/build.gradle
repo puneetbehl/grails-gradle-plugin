@@ -18,7 +18,7 @@ version "${projectVersion}"
 group "org.grails.example"
 
 dependencies {
-    implementation 'org.apache.groovy:groovy-all:4.0.24'
+    implementation 'org.apache.groovy:groovy-all:4.0.25'
 }
 
 allprojects {

@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    implementation 'org.apache.groovy:groovy-all:4.0.24'
+    implementation 'org.apache.groovy:groovy-all:4.0.25'
 }
 
 logger.lifecycle("Not applying grails-publish plugin to project `${project.name}`")
