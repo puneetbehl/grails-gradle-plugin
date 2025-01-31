@@ -360,6 +360,10 @@ Note: if project properties are used, the properties must be defined prior to ap
                                 def artifactId = ((dependencyNode as Node).getAt(artifactIdQName).first() as Node).text()
                                 def resolvedArtifacts = project.configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts +
                                                         project.configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+                                if (project.configurations.hasProperty('testFixturesCompileClasspath')) {
+                                    resolvedArtifacts += project.configurations.testFixturesCompileClasspath.resolvedConfiguration.resolvedArtifacts +
+                                                         project.configurations.testFixturesRuntimeClasspath.resolvedConfiguration.resolvedArtifacts
+                                }
                                 def managedVersion = resolvedArtifacts.find {
                                     it.moduleVersion.id.group == groupId &&
                                     it.moduleVersion.id.name == artifactId
