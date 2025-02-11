@@ -95,7 +95,7 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
         def runtimeConfiguration = allConfigurations.findByName('runtimeClasspath')
         def explodedConfig = allConfigurations.create('exploded')
         explodedConfig.extendsFrom(runtimeConfiguration)
-        if(Environment.isDevelopmentRun() && isExploded(project)) {
+        if (Environment.isDevelopmentRun() && isExploded(project)) {
             runtimeConfiguration.artifacts.clear()
             // add the subproject classes as outputs
             TaskContainer allTasks = project.tasks
@@ -103,8 +103,8 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
             GroovyCompile groovyCompile = (GroovyCompile) allTasks.findByName('compileGroovy')
             ProcessResources processResources = (ProcessResources) allTasks.findByName("processResources")
 
-            runtimeConfiguration.artifacts.add(new ExplodedDir( groovyCompile.destinationDir, groovyCompile, processResources) )
-            explodedConfig.artifacts.add(new ExplodedDir( processResources.destinationDir, groovyCompile, processResources) )
+            runtimeConfiguration.artifacts.add(new ExplodedDir(groovyCompile.destinationDir, groovyCompile, processResources))
+            explodedConfig.artifacts.add(new ExplodedDir(processResources.destinationDir, groovyCompile, processResources))
         }
     }
 
@@ -121,7 +121,7 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
     @CompileStatic
     protected void configureSourcesJarTask(Project project) {
         def taskContainer = project.tasks
-        if(taskContainer.findByName('sourcesJar') == null) {
+        if (taskContainer.findByName('sourcesJar') == null) {
             def jarTask = taskContainer.create("sourcesJar", Jar)
             jarTask.archiveClassifier.set('sources')
             jarTask.from SourceSets.findMainSourceSet(project).allSource
@@ -138,7 +138,6 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
 
     @CompileDynamic
     protected void configureAstSources(Project project) {
-        SourceSet mainSourceSet = SourceSets.findMainSourceSet(project)
         SourceSetContainer sourceSets = SourceSets.findSourceSets(project)
         project.sourceSets {
             ast {
@@ -154,42 +153,62 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
             }
         }
 
-        def copyAstClasses = project.task(type: Copy, "copyAstClasses") {
-            from sourceSets.ast.output
-            into "${project.buildDir}/classes/groovy/main"
+        def copyAstClasses = project.tasks.register('copyAstClasses', Copy) {
+            it.from sourceSets.ast.output
+            it.into project.layout.buildDirectory.dir("classes/groovy/main")
         }
 
         def taskContainer = project.tasks
-        taskContainer.getByName('classes').dependsOn(copyAstClasses)
+        taskContainer.named('classes').configure { it.dependsOn(copyAstClasses) }
 
-        try{
-            taskContainer.getByName('compileWebappGroovyPages').dependsOn(copyAstClasses)
-        }
-        catch (ignored) {
+        taskContainer.withType(JavaExec).configureEach {
+            it.classpath += sourceSets.ast.output
         }
 
-        taskContainer.withType(JavaExec) {
-            classpath += sourceSets.ast.output
-        }
-
-        Task javadocTask = taskContainer.findByName('javadoc')
-        Task groovydocTask = taskContainer.findByName('groovydoc')
-        if (javadocTask) {
-            javadocTask.configure {
-                source += sourceSets.ast.allJava
+        project.afterEvaluate {
+            try {
+                taskContainer.getByName('compileWebappGroovyPages').dependsOn(copyAstClasses)
             }
-        }
-
-        if (groovydocTask) {
-            if( taskContainer.findByName('javadocJar') == null) {
-                taskContainer.create("javadocJar", Jar).configure {
-                    archiveClassifier.set('javadoc')
-                    from groovydocTask.outputs
-                }.dependsOn(javadocTask)
+            catch (ignored) {
             }
 
-            groovydocTask.configure {
-                source += sourceSets.ast.allJava
+            Task sourcesJarTask = taskContainer.findByName('sourcesJar')
+            if(sourcesJarTask) {
+                project.rootProject.logger.lifecycle("Found sources jar task")
+                sourcesJarTask.configure {
+                    project.rootProject.logger.lifecycle("Including ast in sources jar")
+                    from sourceSets.ast.allSource
+                }
+            }
+            else {
+                project.rootProject.logger.lifecycle("No sources jar task found")
+            }
+
+            Task javadocTask = taskContainer.findByName('javadoc')
+            if (javadocTask) {
+                javadocTask.configure {
+                    source += sourceSets.ast.allJava
+                }
+            }
+            else {
+                project.rootProject.logger.lifecycle("Warning - a javadocTask was not found, so the ast source will not be included in the javadoc task")
+            }
+
+            Task groovydocTask = taskContainer.findByName('groovydoc')
+            if (groovydocTask) {
+                if( taskContainer.findByName('javadocJar') == null) {
+                    taskContainer.create("javadocJar", Jar).configure {
+                        archiveClassifier.set('javadoc')
+                        from groovydocTask.outputs
+                    }.dependsOn(javadocTask)
+                }
+
+                groovydocTask.configure {
+                    source += sourceSets.ast.allJava
+                }
+            }
+            else {
+                project.rootProject.logger.lifecycle("Warning - a groovydocTask was not found, so the ast source will not be included in the groovydoc task")
             }
         }
     }
@@ -198,16 +217,16 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
         // Assemble task in Grails Plugins should only produce a plain jar
         project.tasks.named('assemble') { Task assembleTask ->
             def disabledTasks = [
-                'bootDistTar',
-                'bootDistZip',
-                'bootJar',
-                'bootStartScripts',
-                'bootWar',
-                'bootWarMainClassName',
-                'distTar',
-                'distZip',
-                'startScripts',
-                'war'
+                    'bootDistTar',
+                    'bootDistZip',
+                    'bootJar',
+                    'bootStartScripts',
+                    'bootWar',
+                    'bootWarMainClassName',
+                    'distTar',
+                    'distZip',
+                    'startScripts',
+                    'war'
             ]
             disabledTasks.each { String disabledTaskName ->
                 project.tasks.findByName(disabledTaskName)?.enabled = false
@@ -276,8 +295,8 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
     }
 
     protected void checkForConfigurationClash(Project project) {
-        File yamlConfig = new File(project.projectDir,"grails-app/conf/plugin.yml")
-        File groovyConfig = new File(project.projectDir,"grails-app/conf/plugin.groovy")
+        File yamlConfig = new File(project.projectDir, "grails-app/conf/plugin.yml")
+        File groovyConfig = new File(project.projectDir, "grails-app/conf/plugin.groovy")
         if (yamlConfig.exists() && groovyConfig.exists()) {
             throw new RuntimeException("A plugin may define a plugin.yml or a plugin.groovy, but not both")
         }
@@ -291,7 +310,7 @@ class GrailsPluginGradlePlugin extends GrailsGradlePlugin {
         final File file
         final TaskDependency buildDependencies
 
-        ExplodedDir(File file, Object...tasks) {
+        ExplodedDir(File file, Object... tasks) {
             this.file = file
             this.buildDependencies = new DefaultTaskDependency().add(tasks)
         }

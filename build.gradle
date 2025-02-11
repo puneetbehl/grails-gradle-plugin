@@ -65,11 +65,8 @@ if (isReleaseVersion) {
     apply plugin: 'signing'
 }
 
+compileJava.options.release = 17
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-
     withJavadocJar()
     withSourcesJar()
 }
