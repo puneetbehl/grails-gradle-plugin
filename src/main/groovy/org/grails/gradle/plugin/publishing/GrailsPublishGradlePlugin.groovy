@@ -240,14 +240,6 @@ Note: if project properties are used, the properties must be defined prior to ap
                         groupId gpe.groupId ?: project.group
 
                         doAddArtefact(project, delegate)
-                        def sourcesJar = taskContainer.findByName('sourcesJar')
-                        if (sourcesJar != null) {
-                            artifact sourcesJar
-                        }
-                        def javadocJar = taskContainer.findByName('javadocJar')
-                        if (javadocJar != null) {
-                            artifact javadocJar
-                        }
                         def extraArtefact = getDefaultExtraArtifact(project)
                         if (extraArtefact) {
                             artifact extraArtefact
