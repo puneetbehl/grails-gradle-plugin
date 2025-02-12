@@ -1,0 +1,39 @@
+buildscript {
+    repositories {
+        maven { url "${System.getenv('LOCAL_MAVEN_PATH')}" }
+        maven { url = 'https://repo.grails.org/grails/core' }
+    }
+    dependencies {
+        classpath "org.grails:grails-gradle-plugin:$grailsGradlePluginVersion"
+    }
+}
+
+version "${projectVersion}"
+group "org.grails.example"
+
+subprojects { project ->
+    version "${projectVersion}"
+    group "org.grails.example"
+
+    repositories {
+        maven { url = 'https://repo.grails.org/grails/core' }
+    }
+
+    if(project.name == "subproject1") {
+        apply plugin: 'org.grails.grails-publish'
+        grailsPublish {
+            githubSlug = 'grails/grails-gradle-plugin'
+            license {
+                name = 'Apache-2.0'
+            }
+            title = 'Grails Gradle Plugin - Example Project'
+            desc = 'A testing project for the grails gradle plugin'
+            developers = [
+                    jdaugherty: 'James Daugherty',
+            ]
+        }
+    }
+    else {
+        logger.lifecycle("Not applying grails-publish plugin to project `${project.name}`")
+    }
+}

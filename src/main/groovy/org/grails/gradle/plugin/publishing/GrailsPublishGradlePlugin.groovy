@@ -22,23 +22,27 @@ import io.github.gradlenexus.publishplugin.NexusPublishPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.plugins.ExtensionContainer
 import org.gradle.api.plugins.ExtraPropertiesExtension
+import org.gradle.api.plugins.JavaPluginExtension
 import org.gradle.api.plugins.PluginManager
 import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.publish.maven.plugins.MavenPublishPlugin
+import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskContainer
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.api.tasks.bundling.Jar
 import org.gradle.plugins.signing.Sign
 import org.gradle.plugins.signing.SigningExtension
 import org.gradle.plugins.signing.SigningPlugin
+import org.grails.gradle.plugin.util.SourceSets
 
-import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEY_ID
-import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_PASSWORD
-import static com.bmuschko.gradle.nexus.NexusPlugin.getSIGNING_KEYRING
+import static com.bmuschko.gradle.nexus.NexusPlugin.*
 
 /**
- * A plugin to ease publishing Grails related artifacts
+ * A plugin to ease publishing Grails related artifacts - including source, groovydoc (as javadoc jars), and plugins
  *
  * @author Graeme Rocher
  * @author James Daugherty
@@ -218,6 +222,32 @@ Note: if project properties are used, the properties must be defined prior to ap
         }
 
         project.afterEvaluate {
+            if(!project.extensions.findByType(JavaPluginExtension)) {
+                throw new RuntimeException("Grails Publish Plugin requires the Java Plugin to be applied to the project.")
+            }
+            project.extensions.configure(JavaPluginExtension) {
+                it.withJavadocJar()
+                it.withSourcesJar()
+            }
+            //Task groovyDocTask = taskContainer.findByName('groovydoc')
+            taskContainer.named('javadocJar', Jar).configure { Jar task ->
+                project.logger.lifecycle("Configuring javadocJar task for project ${project.name}")
+                Task groovyDocTask = taskContainer.findByName('groovydoc')
+                if(groovyDocTask) {
+                    task.dependsOn groovyDocTask
+
+                    task.duplicatesStrategy = DuplicatesStrategy.INCLUDE
+                    task.from groovyDocTask.outputs
+                }
+            }
+
+            taskContainer.named('sourcesJar', Jar).configure { Jar task ->
+                SourceSetContainer sourceSets = SourceSets.findSourceSets(project)
+                task.duplicatesStrategy = DuplicatesStrategy.INCLUDE
+                // don't only include main, but any source set
+                task.from sourceSets.collect { it.allSource }
+            }
+
             validateProjectPublishable(project as Project)
             project.publishing {
                 if (useMavenPublish) {
@@ -225,9 +255,11 @@ Note: if project properties are used, the properties must be defined prior to ap
                     System.setProperty('org.gradle.internal.publish.checksums.insecure', true as String)
                     repositories {
                         maven {
-                            credentials {
-                                username = mavenPublishUsername
-                                password = mavenPublishPassword
+                            if(mavenPublishUsername && mavenPublishPassword) {
+                                credentials {
+                                    username = mavenPublishUsername
+                                    password = mavenPublishPassword
+                                }
                             }
                             url = mavenPublishUrl
                         }
@@ -343,31 +375,34 @@ Note: if project properties are used, the properties must be defined prior to ap
                             def versionQName = new QName(mavenPomNamespace, 'version')
                             def groupIdQName = new QName(mavenPomNamespace, 'groupId')
                             def artifactIdQName = new QName(mavenPomNamespace, 'artifactId')
-                            def dependencyNodes = ((pomNode.getAt(dependenciesQName) as NodeList).first() as Node).getAt(dependencyQName)
-                            dependencyNodes.findAll { dependencyNode ->
-                                def versionNodes = (dependencyNode as Node).getAt(versionQName)
-                                return versionNodes.size() == 0 || (versionNodes.first() as Node).text().isEmpty()
-                            }.each { dependencyNode ->
-                                def groupId = ((dependencyNode as Node).getAt(groupIdQName).first() as Node).text()
-                                def artifactId = ((dependencyNode as Node).getAt(artifactIdQName).first() as Node).text()
-                                def resolvedArtifacts = project.configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts +
-                                                        project.configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
-                                if (project.configurations.hasProperty('testFixturesCompileClasspath')) {
-                                    resolvedArtifacts += project.configurations.testFixturesCompileClasspath.resolvedConfiguration.resolvedArtifacts +
-                                                         project.configurations.testFixturesRuntimeClasspath.resolvedConfiguration.resolvedArtifacts
-                                }
-                                def managedVersion = resolvedArtifacts.find {
-                                    it.moduleVersion.id.group == groupId &&
-                                    it.moduleVersion.id.name == artifactId
-                                }?.moduleVersion?.id?.version
-                                if (!managedVersion) {
-                                    throw new RuntimeException("No version found for dependency $groupId:$artifactId.")
-                                }
-                                def versionNode = (dependencyNode as Node).getAt(versionQName)
-                                if (versionNode) {
-                                    (versionNode.first() as Node).value = managedVersion
-                                } else {
-                                    (dependencyNode as Node).appendNode('version', managedVersion)
+                            def nodes = (pomNode.getAt(dependenciesQName) as NodeList)
+                            if(nodes) {
+                                def dependencyNodes = (nodes.first() as Node).getAt(dependencyQName)
+                                dependencyNodes.findAll { dependencyNode ->
+                                    def versionNodes = (dependencyNode as Node).getAt(versionQName)
+                                    return versionNodes.size() == 0 || (versionNodes.first() as Node).text().isEmpty()
+                                }.each { dependencyNode ->
+                                    def groupId = ((dependencyNode as Node).getAt(groupIdQName).first() as Node).text()
+                                    def artifactId = ((dependencyNode as Node).getAt(artifactIdQName).first() as Node).text()
+                                    def resolvedArtifacts = project.configurations.compileClasspath.resolvedConfiguration.resolvedArtifacts +
+                                            project.configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+                                    if (project.configurations.hasProperty('testFixturesCompileClasspath')) {
+                                        resolvedArtifacts += project.configurations.testFixturesCompileClasspath.resolvedConfiguration.resolvedArtifacts +
+                                                project.configurations.testFixturesRuntimeClasspath.resolvedConfiguration.resolvedArtifacts
+                                    }
+                                    def managedVersion = resolvedArtifacts.find {
+                                        it.moduleVersion.id.group == groupId &&
+                                                it.moduleVersion.id.name == artifactId
+                                    }?.moduleVersion?.id?.version
+                                    if (!managedVersion) {
+                                        throw new RuntimeException("No version found for dependency $groupId:$artifactId.")
+                                    }
+                                    def versionNode = (dependencyNode as Node).getAt(versionQName)
+                                    if (versionNode) {
+                                        (versionNode.first() as Node).value = managedVersion
+                                    } else {
+                                        (dependencyNode as Node).appendNode('version', managedVersion)
+                                    }
                                 }
                             }
                         }
@@ -405,9 +440,18 @@ Note: if project properties are used, the properties must be defined prior to ap
         project.plugins.withId(MAVEN_PUBLISH_PLUGIN_ID) {
             TaskProvider<? extends Task> publishTask = project.tasks.named("publish")
 
-            TaskProvider validateBeforePublish = project.tasks.register("requireMavenPublishUrl") {
-                if (!mavenPublishUrl) {
-                    throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
+            TaskProvider validateBeforePublish = project.tasks.register("grailsPublishValidation") {
+                doLast {
+                    if (!mavenPublishUrl) {
+                        throw new RuntimeException('Could not locate a project property of `mavenPublishUrl` or an environment variable of `MAVEN_PUBLISH_URL`. A URL is required for maven publishing.')
+                    }
+
+                    Task groovyDocTask = project.tasks.findByName('groovydoc')
+                    if(groovyDocTask) {
+                        if(!groovyDocTask.enabled) {
+                            throw new RuntimeException("Groovydoc task is disabled. Please enable it to ensure javadoc can be published correctly with the Grails Publish Plugin.")
+                        }
+                    }
                 }
             }
 
@@ -422,6 +466,10 @@ Note: if project properties are used, the properties must be defined prior to ap
     }
 
     protected Map<String, String> getDefaultExtraArtifact(Project project) {
+        if(!project.sourceSets.main.hasProperty('groovy')) {
+            return null
+        }
+
         String pluginXml = "${project.sourceSets.main.groovy.getClassesDirectory().get().getAsFile()}/META-INF/grails-plugin.xml".toString()
         new File(pluginXml).exists() ? [
                 source    : pluginXml,
@@ -435,8 +483,10 @@ Note: if project properties are used, the properties must be defined prior to ap
     }
 
     protected validateProjectPublishable(Project project) {
-        if (!project.components) {
-            throw new RuntimeException("Cannot apply Grails Publish Plugin. Project ${project.name} does not have any components to publish.")
+        SourceSetContainer sourceSets = SourceSets.findSourceSets(project)
+        Collection<SourceSet> publishedSources = sourceSets.findAll {it.name != SourceSet.TEST_SOURCE_SET_NAME && !it.allSource.isEmpty() }
+        if (!publishedSources) {
+            throw new RuntimeException("Cannot apply Grails Publish Plugin. Project ${project.name} does not have anything to publish.")
         }
     }
 }
