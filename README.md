@@ -45,6 +45,8 @@ grails-publish
 ---------
 A Gradle plugin to ease publishing with the maven publish plugin or the nexus publish plugin.
 
+Artifacts published by this plugin include sources, the jar file, and a javadoc jar that contains both the groovydoc & javadoc.
+
 Example Usage:
 
     grailsPublish {

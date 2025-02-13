@@ -6,6 +6,7 @@ def e2eTestTask = tasks.register('e2eTest', Test) {
     useJUnitPlatform()
     systemProperty("localMavenPath", rootProject.layout.buildDirectory.dir('local-maven').get().asFile.absolutePath)
     systemProperty("grailsGradlePluginVersion", rootProject.version)
+    systemProperty("groovyVersion", e2eGroovyVersion)
 
     testLogging {
         exceptionFormat = 'full'
