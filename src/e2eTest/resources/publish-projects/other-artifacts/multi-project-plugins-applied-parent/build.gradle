@@ -23,7 +23,7 @@ subprojects { project ->
     }
 
     dependencies {
-        implementation 'org.apache.groovy:groovy-all:4.0.24'
+        implementation "org.apache.groovy:groovy-all:$groovyVersion"
     }
 
     if(project.name == "subproject1") {

@@ -36,6 +36,12 @@ abstract class GradleSpecification extends Specification {
                 System.getProperty("grailsGradlePluginVersion"),
                 gradleRunner
         )
+
+        gradleRunner = setGradleProperty(
+                "groovyVersion",
+                System.getProperty("groovyVersion"),
+                gradleRunner
+        )
     }
 
     GradleRunner addEnvironmentVariable(String key, String value, GradleRunner runner) {
