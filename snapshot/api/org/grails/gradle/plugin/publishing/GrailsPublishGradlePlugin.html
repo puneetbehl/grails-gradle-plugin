@@ -218,7 +218,7 @@ implements org.gradle.api.Plugin&lt;org.gradle.api.Project&gt;</pre>
                         <tr class="altColor">
                             <td class="colFirst"><code></code></td>
                             <td class="colLast"><code>protected&nbsp;void</code></td>
-                            <td class="colLast"><code><strong><a href="#addMavenPublishValidations(org.gradle.api.Project, java.lang.Object)">addMavenPublishValidations</a></strong>(org.gradle.api.Project project, java.lang.Object mavenPublishUrl)</code><br></td>
+                            <td class="colLast"><code><strong><a href="#addInstallTaskAliases(org.gradle.api.Project)">addInstallTaskAliases</a></strong>(org.gradle.api.Project project)</code><br></td>
                         </tr>
                         
                         <tr class="rowColor">
@@ -252,6 +252,12 @@ implements org.gradle.api.Plugin&lt;org.gradle.api.Project&gt;</pre>
                         </tr>
                         
                         <tr class="altColor">
+                            <td class="colFirst"><code></code></td>
+                            <td class="colLast"><code>protected&nbsp;void</code></td>
+                            <td class="colLast"><code><strong><a href="#registerValidationTask(org.gradle.api.Project, java.lang.String, groovy.lang.Closure)">registerValidationTask</a></strong>(org.gradle.api.Project project, java.lang.String taskName, groovy.lang.Closure c)</code><br></td>
+                        </tr>
+                        
+                        <tr class="rowColor">
                             <td class="colFirst"><code></code></td>
                             <td class="colLast"><code>protected&nbsp;java.lang.Object</code></td>
                             <td class="colLast"><code><strong><a href="#validateProjectPublishable(org.gradle.api.Project)">validateProjectPublishable</a></strong>(org.gradle.api.Project project)</code><br></td>
@@ -367,10 +373,10 @@ implements org.gradle.api.Plugin&lt;org.gradle.api.Project&gt;</pre>
                 </a>
                     <h3>Method Detail</h3>
                     
-                        <a name="addMavenPublishValidations(org.gradle.api.Project, java.lang.Object)"><!-- --></a>
+                        <a name="addInstallTaskAliases(org.gradle.api.Project)"><!-- --></a>
                         <ul class="blockListLast">
                             <li class="blockList">
-                                <h4>protected&nbsp;void <strong>addMavenPublishValidations</strong>(org.gradle.api.Project project, java.lang.Object mavenPublishUrl)</h4>
+                                <h4>protected&nbsp;void <strong>addInstallTaskAliases</strong>(org.gradle.api.Project project)</h4>
                                 <p></p>
                             </li>
                         </ul>
@@ -412,6 +418,14 @@ void <strong>apply</strong>(org.gradle.api.Project project)</h4>
                         <ul class="blockListLast">
                             <li class="blockList">
                                 <h4>java.lang.String <strong>getErrorMessage</strong>(java.lang.String missingSetting)</h4>
+                                <p></p>
+                            </li>
+                        </ul>
+                    
+                        <a name="registerValidationTask(org.gradle.api.Project, java.lang.String, groovy.lang.Closure)"><!-- --></a>
+                        <ul class="blockListLast">
+                            <li class="blockList">
+                                <h4>protected&nbsp;void <strong>registerValidationTask</strong>(org.gradle.api.Project project, java.lang.String taskName, groovy.lang.Closure c)</h4>
                                 <p></p>
                             </li>
                         </ul>
