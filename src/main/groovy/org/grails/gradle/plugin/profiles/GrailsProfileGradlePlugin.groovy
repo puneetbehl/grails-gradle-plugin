@@ -107,7 +107,7 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
             task.classpath = project.configurations.getByName(RUNTIME_CONFIGURATION) + project.files(IOUtils.findJarFile(GroovyScriptCommand))
         })
 
-        def jarProfileTask = project.tasks.register("jarProfile", Jar, { Jar jar ->
+        def profileJarTask = project.tasks.register("profileJar", Jar, { Jar jar ->
             jar.dependsOn(processProfileResourcesTask, compileProfileTask)
             jar.from(resourcesDir)
             jar.from(classsesDir)
@@ -136,6 +136,6 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
             jar.setGroup(BUILD_GROUP)
 
         })
-        project.tasks.findByName("assemble").dependsOn jarProfileTask
+        project.tasks.findByName("assemble").dependsOn profileJarTask
     }
 }

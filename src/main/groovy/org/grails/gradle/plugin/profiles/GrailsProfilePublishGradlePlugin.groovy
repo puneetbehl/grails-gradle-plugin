@@ -68,7 +68,7 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
 
     @Override
     protected void doAddArtefact(Project project, MavenPublication publication) {
-        publication.artifact(project.tasks.findByName('jarProfile'))
+        publication.artifact(project.tasks.findByName('profileJar'))
         publication.artifact(project.tasks.findByName('sourcesProfileJar'))
         publication.artifact(project.tasks.findByName('javadocProfileJar'))
 
