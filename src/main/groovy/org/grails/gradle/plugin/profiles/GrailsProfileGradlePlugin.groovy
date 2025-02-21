@@ -90,12 +90,14 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
         }
 
         def processProfileResourcesTask = project.tasks.register("processProfileResources", Copy, { Copy c ->
+            c.group = "build"
             c.with(spec1, spec2, spec3, spec4)
             c.into(new File(resourcesDir, "/META-INF/grails-profile"))
         })
 
         def classsesDir = new File(project.layout.buildDirectory.getAsFile().get(), "classes/profile")
         def compileProfileTask = project.tasks.register("compileProfile", ProfileCompilerTask, { ProfileCompilerTask task ->
+            task.group = "build"
             task.profileDestinationDir = classsesDir
             task.source = commandsDir
             task.config = profileYml
