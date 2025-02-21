@@ -45,7 +45,7 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
         super.apply(project)
         final File tempReadmeForJavadoc = Files.createTempFile('README', 'txt').toFile()
         tempReadmeForJavadoc << 'https://central.sonatype.org/publish/requirements/#supply-javadoc-and-sources'
-        project.tasks.create('javadocJar', Jar, { Jar jar ->
+        project.tasks.register('javadocProfileJar', Jar, { Jar jar ->
             jar.from(tempReadmeForJavadoc)
             jar.archiveClassifier.set('javadoc')
             jar.destinationDirectory.set(new File(project.layout.buildDirectory.getAsFile().get(), 'libs'))
@@ -68,7 +68,10 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
 
     @Override
     protected void doAddArtefact(Project project, MavenPublication publication) {
-        publication.artifact(project.tasks.findByName('jar'))
+        publication.artifact(project.tasks.findByName('jarProfile'))
+        publication.artifact(project.tasks.findByName('sourcesProfileJar'))
+        publication.artifact(project.tasks.findByName('javadocProfileJar'))
+
         publication.pom(new Action<MavenPom>() {
             @Override
             void execute(MavenPom mavenPom) {
