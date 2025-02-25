@@ -24,6 +24,7 @@ import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.artifacts.SelfResolvingDependency
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.maven.tasks.GenerateMavenPom
 import org.gradle.api.publish.maven.tasks.PublishToMavenLocal
 import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import org.gradle.api.tasks.bundling.Jar
@@ -56,12 +57,8 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
         })
 
         project.afterEvaluate { evaluated ->
-            evaluated.tasks.withType(PublishToMavenLocal).each { publishToMavenLocalTask ->
-                publishToMavenLocalTask.dependsOn(project.tasks.withType(Jar))
-            }
-
-            evaluated.tasks.withType(PublishToMavenRepository).each {publishToMavenRepositoryTask ->
-                publishToMavenRepositoryTask.dependsOn(project.tasks.withType(Jar))
+            evaluated.tasks.withType(GenerateMavenPom).each { generateMavenPom ->
+                generateMavenPom.dependsOn(project.tasks.withType(Jar))
             }
         }
     }
