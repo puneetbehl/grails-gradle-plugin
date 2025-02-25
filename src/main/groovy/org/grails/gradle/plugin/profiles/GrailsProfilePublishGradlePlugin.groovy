@@ -55,8 +55,8 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
         })
 
         project.afterEvaluate { evaluated ->
-            evaluated.tasks.withType(GenerateMavenPom).each { generateMavenPom ->
-                generateMavenPom.dependsOn(project.tasks.withType(Jar))
+            evaluated.tasks.withType(GenerateMavenPom).each { generateMavenPomTask ->
+                generateMavenPomTask.dependsOn(project.tasks.withType(Jar))
             }
         }
     }
