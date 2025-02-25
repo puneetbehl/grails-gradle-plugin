@@ -24,6 +24,7 @@ import org.gradle.api.artifacts.DependencySet
 import org.gradle.api.artifacts.SelfResolvingDependency
 import org.gradle.api.publish.maven.MavenPom
 import org.gradle.api.publish.maven.MavenPublication
+import org.gradle.api.publish.maven.tasks.GenerateMavenPom
 import org.gradle.api.tasks.bundling.Jar
 import org.grails.gradle.plugin.publishing.GrailsPublishGradlePlugin
 
@@ -52,6 +53,12 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
             jar.setDescription('Assembles a jar archive containing the profile javadoc.')
             jar.setGroup(BUILD_GROUP)
         })
+
+        project.afterEvaluate { evaluated ->
+            evaluated.tasks.withType(GenerateMavenPom).each { generateMavenPomTask ->
+                generateMavenPomTask.dependsOn(project.tasks.withType(Jar))
+            }
+        }
     }
 
     @Override
