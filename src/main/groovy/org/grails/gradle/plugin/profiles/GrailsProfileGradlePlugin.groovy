@@ -109,6 +109,12 @@ class GrailsProfileGradlePlugin implements Plugin<Project> {
 
         def profileJarTask = project.tasks.register("profileJar", Jar, { Jar jar ->
             jar.dependsOn(processProfileResourcesTask, compileProfileTask)
+
+            def jarTask = project.tasks.findByName("jar")
+            if(jarTask){
+                jar.dependsOn(jarTask)
+            }
+
             jar.from(resourcesDir)
             jar.from(classsesDir)
             jar.destinationDirectory.set(new File(project.layout.buildDirectory.getAsFile().get(), "libs"))
