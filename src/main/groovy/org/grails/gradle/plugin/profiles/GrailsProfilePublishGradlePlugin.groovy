@@ -90,13 +90,11 @@ class GrailsProfilePublishGradlePlugin extends GrailsPublishGradlePlugin {
                         DependencySet dependencySet = project.configurations[GrailsProfileGradlePlugin.RUNTIME_CONFIGURATION].allDependencies
 
                         for (Dependency dependency : dependencySet) {
-                            if (! (dependency instanceof SelfResolvingDependency)) {
-                                Node dependencyNode = dependenciesNode.appendNode('dependency')
-                                dependencyNode.appendNode('groupId', dependency.group)
-                                dependencyNode.appendNode('artifactId', dependency.name)
-                                dependencyNode.appendNode('version', dependency.version)
-                                dependencyNode.appendNode('scope', GrailsProfileGradlePlugin.RUNTIME_CONFIGURATION)
-                            }
+                            Node dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', dependency.group)
+                            dependencyNode.appendNode('artifactId', dependency.name)
+                            dependencyNode.appendNode('version', dependency.version)
+                            dependencyNode.appendNode('scope', GrailsProfileGradlePlugin.RUNTIME_CONFIGURATION)
                         }
                     }
                 })
